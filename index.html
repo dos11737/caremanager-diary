@@ -183,7 +183,7 @@ textarea{min-height:52px;resize:vertical}
       <button class="logout-btn" id="logoutBtn">ログアウト</button>
     </div>
   </div>
-  <div class="sync-indicator" id="syncBar">Firebase接続中...</div>
+  <div class="sync-indicator" id="syncBar" style="display:none"></div>
   <div class="nav-tabs">
     <div class="nav-tab active" data-p="pInput">入力</div>
     <div class="nav-tab" data-p="pAll">全員記録</div>
@@ -338,6 +338,7 @@ onAuthStateChanged(auth, user => {
   if(user){
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('mainApp').style.display='';
+    document.getElementById('syncBar').style.display='';
     const ui=document.getElementById('userInfo');
     ui.style.display='flex';
     document.getElementById('userName').textContent=user.displayName||user.email;
@@ -345,9 +346,11 @@ onAuthStateChanged(auth, user => {
   } else {
     document.getElementById('loginScreen').style.display='flex';
     document.getElementById('mainApp').style.display='none';
+    document.getElementById('syncBar').style.display='none';
     document.getElementById('userInfo').style.display='none';
     document.getElementById('loginForm').style.display='';
     document.getElementById('registerForm').style.display='none';
+    dbListenerStarted=false;
   }
 });
 
