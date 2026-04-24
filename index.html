@@ -140,6 +140,10 @@ textarea{min-height:52px;resize:vertical}
       </div>
     </div>
     <div class="row">
+      <label>日付</label>
+      <input type="date" id="entryDate" style="flex:1;max-width:180px">
+    </div>
+    <div class="row">
       <label>時刻</label>
       <div class="time-range">
         <input type="time" id="tFrom">
@@ -415,9 +419,12 @@ document.getElementById('submitBtn').addEventListener('click',()=>{
   const tf=document.getElementById('tFrom').value;
   const tt=document.getElementById('tTo').value;
   if(!S.entries)S.entries=[];
-  S.entries.unshift({id:Date.now(),cmIdx:S.curCM,acts:[...selActs],clientIds:[...selCl],timeFrom:tf||nowT(),timeTo:tt,place:selPlace,memo:document.getElementById('memo').value.trim(),date:todayStr()});
+  const dv=document.getElementById('entryDate').value;
+  const dateStr=dv?dv.replace(/-/g,'/'):todayStr();
+  S.entries.unshift({id:Date.now(),cmIdx:S.curCM,acts:[...selActs],clientIds:[...selCl],timeFrom:tf||nowT(),timeTo:tt,place:selPlace,memo:document.getElementById('memo').value.trim(),date:dateStr});
   save();
   document.getElementById('memo').value='';
+  document.getElementById('entryDate').value=todayValue();
   document.getElementById('tFrom').value=nowT();
   document.getElementById('tTo').value='';
   document.getElementById('cSearch').value='';
@@ -425,7 +432,9 @@ document.getElementById('submitBtn').addEventListener('click',()=>{
   rActBtns();rPlaceBtns();rChips();rClientDrop('');rTL('allTL',null,filterAct);rStats();
 });
 
-// 時刻初期値
+// 日付・時刻の初期値
+function todayValue(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+document.getElementById('entryDate').value=todayValue();
 document.getElementById('tFrom').value=nowT();
 
 function rTL(elId,cmIdx,actFilter){
