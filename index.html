@@ -732,6 +732,27 @@ document.getElementById('csvImport').addEventListener('change',function(){
       const text=e.target.result;
       // BOM除去・改行正規化
       const lines=text.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
+      // 文字化けチェック：置換文字(U+FFFD)が多ければShift-JISで再読込
+      if((text.match(/\uFFFD/g)||[]).length>3){
+        st.textContent='文字コード変換中(Shift-JIS)...';
+        const r2=new FileReader();
+        r2.onload=e2=>{processCSV(e2.target.result,st);};
+        r2.readAsText(file,'Shift-JIS');
+        return;
+      }
+      processCSV(text,st);
+    }catch(err){
+      st.textContent='読み込みエラー: '+err.message;st.style.color='#e53935';
+    }
+    this.value='';
+  };
+  reader.onerror=()=>{st.textContent='ファイル読み込みに失敗しました';st.style.color='#e53935';};
+  reader.readAsText(file,'UTF-8');
+});
+
+function processCSV(text,st){
+  try{
+      const lines=text.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
       if(!lines.length){st.textContent='データが空です';st.style.color='#e53935';return;}
 
       // ヘッダー行の自動検出（1行目が「氏名」「名前」等なら読み飛ばす）
@@ -766,13 +787,10 @@ document.getElementById('csvImport').addEventListener('change',function(){
       if(skipped)msg+=`（重複${skipped}名スキップ）`;
       if(notFound)msg+=`（CM名不一致${notFound}名は未設定）`;
       st.textContent=msg;st.style.color='#2e7d32';
-    }catch(err){
-      st.textContent='読み込みエラー: '+err.message;st.style.color='#e53935';
-    }
-    this.value='';
-  };
-  reader.readAsText(file,'UTF-8');
-});
+  }catch(err){
+    st.textContent='処理エラー: '+err.message;st.style.color='#e53935';
+  }
+}
 
 // 利用者リストCSV出力
 document.getElementById('clExportBtn').addEventListener('click',()=>{
