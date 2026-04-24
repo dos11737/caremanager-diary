@@ -182,9 +182,35 @@ textarea{min-height:52px;resize:vertical}
     </div>
     <div class="ss">
       <h3>利用者</h3>
-      <div style="font-size:11px;color:#888;margin-bottom:7px">担当CMを設定すると入力時に色分け表示されます</div>
+
+      <!-- CSV一括インポート -->
+      <div style="background:#f0f7ff;border:1px solid #c5ddf9;border-radius:8px;padding:10px 12px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:#1a73e8;margin-bottom:6px">📥 CSV一括インポート</div>
+        <div style="font-size:11px;color:#555;margin-bottom:8px;line-height:1.6">
+          1列目：氏名　2列目：担当CM名（例：山田）のCSVをアップロードしてください。<br>
+          既存データに追加されます（重複氏名はスキップ）。
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <label style="padding:7px 12px;background:#1a73e8;color:#fff;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">
+            CSVを選択
+            <input type="file" id="csvImport" accept=".csv" style="display:none">
+          </label>
+          <span id="csvImportStatus" style="font-size:12px;color:#888"></span>
+          <button class="pbtn" id="clExportBtn" style="margin-left:auto;font-size:11px;padding:5px 10px">CSV出力</button>
+        </div>
+      </div>
+
+      <!-- CM絞り込み -->
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;align-items:center">
+        <span style="font-size:11px;color:#888;flex-shrink:0">絞り込み</span>
+        <div id="clFilterBtns" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+        <span id="clCount" style="font-size:11px;color:#aaa;margin-left:auto"></span>
+      </div>
+
       <div id="clSetList"></div>
-      <div class="add-row" style="margin-top:8px">
+
+      <!-- 1件追加 -->
+      <div class="add-row" style="margin-top:10px">
         <input type="text" id="newClName" placeholder="利用者氏名">
         <select id="newClCm" style="max-width:110px;width:auto"></select>
         <button class="add-btn" id="addClBtn">追加</button>
@@ -341,7 +367,7 @@ function rChips(){
 
 function rClientDrop(q){
   const el=document.getElementById('cList');
-  const list=(S.clients||[]).filter(c=>!q||c.name.includes(q));
+  const list=(S.clients||[]).filter(c=>!c.inactive&&(!q||c.name.includes(q)));
   if(!list.length){el.innerHTML='<div class="c-empty">該当なし</div>';return;}
   el.innerHTML=list.map(c=>{
     const ci=c.cmIdx!=null?+c.cmIdx:-1;
@@ -595,40 +621,170 @@ function rNewClCmSel(){
   sel.innerHTML=`<option value="-1">未設定</option>`+(S.cms||[]).map((cm,i)=>`<option value="${i}">${cm.name}CM</option>`).join('');
 }
 
+let clFilter='all'; // 利用者設定ページのCM絞り込み
+let clPage=0;
+const CL_PER_PAGE=30;
+
+function rClFilterBtns(){
+  const el=document.getElementById('clFilterBtns');if(!el)return;
+  const btns=[{v:'all',l:'全員'},...(S.cms||[]).map((cm,i)=>({v:String(i),l:cm.name})),{v:'inactive',l:'退去済'}];
+  el.innerHTML=btns.map(b=>{
+    const active=clFilter===b.v;
+    const idx=b.v==='all'||b.v==='inactive'?-1:+b.v;
+    const col=idx>=0?cc(idx):'#666';
+    const bg=idx>=0?cbg(idx):'#f0f0f0';
+    return`<div class="f-btn${active?' active':''}" data-cf="${b.v}" style="${active?'background:'+bg+';color:'+col+';border-color:'+col+';font-weight:700':''}">${b.l}</div>`;
+  }).join('');
+  el.querySelectorAll('[data-cf]').forEach(b=>b.addEventListener('click',()=>{clFilter=b.dataset.cf;clPage=0;rClSet();}));
+}
+
 function rClSet(){
+  rClFilterBtns();
   const el=document.getElementById('clSetList');
-  if(!S.clients||!S.clients.length){el.innerHTML='<div style="font-size:12px;color:#aaa;padding:8px 0">利用者が登録されていません</div>';rNewClCmSel();return;}
-  el.innerHTML=S.clients.map(c=>{
+  const countEl=document.getElementById('clCount');
+  if(!S.clients||!S.clients.length){
+    el.innerHTML='<div style="font-size:12px;color:#aaa;padding:8px 0">利用者が登録されていません</div>';
+    if(countEl)countEl.textContent='';
+    rNewClCmSel();return;
+  }
+
+  // フィルター適用
+  let list=S.clients.filter(c=>{
+    if(clFilter==='inactive') return c.inactive;
+    if(clFilter==='all') return !c.inactive;
+    return !c.inactive && String(c.cmIdx)===clFilter;
+  });
+
+  if(countEl)countEl.textContent=list.length+'名';
+
+  // ページネーション
+  const total=list.length;
+  const pages=Math.ceil(total/CL_PER_PAGE)||1;
+  if(clPage>=pages)clPage=pages-1;
+  const paged=list.slice(clPage*CL_PER_PAGE,(clPage+1)*CL_PER_PAGE);
+
+  let html=paged.map(c=>{
     const ci=c.cmIdx!=null?+c.cmIdx:-1;
-    return`<div class="cl-row">
-      <input class="cl-inp" data-cid="${c.id}" value="${c.name}" placeholder="氏名">
+    return`<div class="cl-row" data-cid="${c.id}">
+      <input class="cl-inp" data-cid="${c.id}" value="${c.name}" placeholder="氏名" ${c.inactive?'style="color:#bbb;text-decoration:line-through"':''}>
       <select class="cl-sel" data-cid="${c.id}">
         <option value="-1"${ci===-1?' selected':''}>未設定</option>
-        ${(S.cms||[]).map((cm,i)=>`<option value="${i}"${ci===i?' selected':''}>${cm.name}CM</option>`).join('')}
+        ${(S.cms||[]).map((cm,i)=>`<option value="${i}"${ci===i?' selected':''}>${cm.name}</option>`).join('')}
       </select>
-      <button class="tdel" data-cid="${c.id}">×</button>
+      <button class="cl-inactive-btn tdel" data-cid="${c.id}" title="${c.inactive?'担当再開':'退去'}">
+        ${c.inactive?'↩':'✕'}
+      </button>
     </div>`;
   }).join('');
+
+  // ページコントロール
+  if(pages>1){
+    html+=`<div style="display:flex;align-items:center;gap:8px;margin-top:10px;justify-content:center">
+      <button class="pbtn" id="clPrev" ${clPage===0?'disabled style="opacity:0.4"':''}>◀</button>
+      <span style="font-size:12px;color:#888">${clPage+1} / ${pages}ページ（${total}名）</span>
+      <button class="pbtn" id="clNext" ${clPage>=pages-1?'disabled style="opacity:0.4"':''}>▶</button>
+    </div>`;
+  }
+
+  el.innerHTML=html;
+
   el.querySelectorAll('.cl-inp').forEach(inp=>inp.addEventListener('change',()=>{
     const c=S.clients.find(x=>x.id==inp.dataset.cid);if(c){c.name=inp.value.trim();save();rClientDrop('');}
   }));
   el.querySelectorAll('.cl-sel').forEach(s=>s.addEventListener('change',()=>{
     const c=S.clients.find(x=>x.id==s.dataset.cid);if(c){c.cmIdx=+s.value;save();rClientDrop('');}
   }));
-  el.querySelectorAll('.tdel').forEach(b=>b.addEventListener('click',()=>{
-    if(!confirm('この利用者を削除しますか？'))return;
-    S.clients=S.clients.filter(c=>c.id!=b.dataset.cid);save();rClSet();rClientDrop('');
+  el.querySelectorAll('.cl-inactive-btn').forEach(b=>b.addEventListener('click',()=>{
+    const c=S.clients.find(x=>x.id==b.dataset.cid);if(!c)return;
+    if(c.inactive){
+      c.inactive=false;save();rClSet();rClientDrop('');
+    } else {
+      if(!confirm(c.name+'を退去済みにしますか？（入力画面から非表示になります）'))return;
+      c.inactive=true;save();rClSet();rClientDrop('');
+    }
   }));
+
+  const prev=document.getElementById('clPrev');
+  const next=document.getElementById('clNext');
+  if(prev)prev.addEventListener('click',()=>{clPage--;rClSet();});
+  if(next)next.addEventListener('click',()=>{clPage++;rClSet();});
+
   document.getElementById('addClBtn').onclick=()=>{
     const n=document.getElementById('newClName').value.trim();if(!n)return;
     const ci=+document.getElementById('newClCm').value;
     if(!S.clients)S.clients=[];
+    if(S.clients.find(c=>c.name===n&&!c.inactive)){alert(n+'はすでに登録されています');return;}
     S.clients.push({id:Date.now(),name:n,cmIdx:ci>=0?ci:null});
     document.getElementById('newClName').value='';
     save();rClSet();rClientDrop('');
   };
   rNewClCmSel();
 }
+
+// CSV一括インポート
+document.getElementById('csvImport').addEventListener('change',function(){
+  const file=this.files[0];if(!file)return;
+  const st=document.getElementById('csvImportStatus');
+  st.textContent='読み込み中...';st.style.color='#888';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const text=e.target.result;
+      // BOM除去・改行正規化
+      const lines=text.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
+      if(!lines.length){st.textContent='データが空です';st.style.color='#e53935';return;}
+
+      // ヘッダー行の自動検出（1行目が「氏名」「名前」等なら読み飛ばす）
+      let startIdx=0;
+      const firstCell=lines[0].split(',')[0].replace(/"/g,'').trim();
+      if(['氏名','名前','利用者名','利用者','name'].includes(firstCell))startIdx=1;
+
+      if(!S.clients)S.clients=[];
+      const existNames=new Set(S.clients.filter(c=>!c.inactive).map(c=>c.name));
+      let added=0,skipped=0,notFound=0;
+
+      lines.slice(startIdx).forEach(line=>{
+        const cols=line.split(',').map(c=>c.replace(/^"|"$/g,'').trim());
+        const name=cols[0];
+        const cmName=cols[1]||'';
+        if(!name)return;
+        if(existNames.has(name)){skipped++;return;}
+
+        // CM名でマッチング（前方一致・氏名のみも可）
+        let cmIdx=null;
+        if(cmName){
+          const idx=(S.cms||[]).findIndex(cm=>cm.name===cmName||cm.name.startsWith(cmName)||cmName.startsWith(cm.name));
+          if(idx>=0)cmIdx=idx;else notFound++;
+        }
+        S.clients.push({id:Date.now()+Math.random(),name,cmIdx});
+        existNames.add(name);
+        added++;
+      });
+
+      save();rClSet();rClientDrop('');
+      let msg=`${added}名を追加しました`;
+      if(skipped)msg+=`（重複${skipped}名スキップ）`;
+      if(notFound)msg+=`（CM名不一致${notFound}名は未設定）`;
+      st.textContent=msg;st.style.color='#2e7d32';
+    }catch(err){
+      st.textContent='読み込みエラー: '+err.message;st.style.color='#e53935';
+    }
+    this.value='';
+  };
+  reader.readAsText(file,'UTF-8');
+});
+
+// 利用者リストCSV出力
+document.getElementById('clExportBtn').addEventListener('click',()=>{
+  const rows=[['氏名','担当CM','状態']];
+  (S.clients||[]).forEach(c=>{
+    const ci=c.cmIdx!=null?+c.cmIdx:-1;
+    rows.push([c.name,ci>=0&&S.cms[ci]?S.cms[ci].name:'未設定',c.inactive?'退去済':'担当中']);
+  });
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='利用者一覧.csv';a.click();
+});
 
 function rTags(key,listId,inputId,btnId){
   const el=document.getElementById(listId);
