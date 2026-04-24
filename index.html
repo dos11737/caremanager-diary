@@ -164,6 +164,10 @@ textarea{min-height:52px;resize:vertical}
       <button class="pbtn" onclick="window.print()">印刷 / PDF</button>
       <button class="pbtn" id="csvBtn">CSV</button>
     </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+      <span style="font-size:11px;color:#888;flex-shrink:0">表示CM</span>
+      <div id="statsCmBtns" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+    </div>
     <div id="statsContent"></div>
   </div>
 
@@ -235,6 +239,7 @@ let S={
 };
 let selActs=new Set(),selPlace='',selCl=new Set();
 let filterAct='all',dropOpen=false,actClr={};
+let statsCmFilter='all'; // 集計ページのCMフィルター
 let saveTimer=null;
 
 function setSyncBar(msg,cls){
@@ -296,7 +301,7 @@ function renderAll(){
   rTL('allTL',null,filterAct);rFilterBar();
   const pg=document.querySelector('.nav-tab.active')?.dataset?.p;
   if(pg==='pSettings')rSettings();
-  if(pg==='pStats'){initMonthSel();rStats();}
+  if(pg==='pStats'){initMonthSel();rStatsCmBtns();rStats();}
 }
 
 function rCmTabs(){
@@ -431,33 +436,101 @@ function initMonthSel(){
   const cur_val=sel.value;
   sel.innerHTML=[...ms].sort((a,b)=>b.localeCompare(a)).map(m=>{const[y,mo]=m.split('-');return`<option value="${m}"${m===cur_val?' selected':''}>${y}年${+mo}月</option>`;}).join('');
   if(!sel.onchange)sel.addEventListener('change',rStats);
+  rStatsCmBtns();
+}
+
+function rStatsCmBtns(){
+  const el=document.getElementById('statsCmBtns');
+  if(!el)return;
+  const btns=[{v:'all',l:'全員'},...(S.cms||[]).map((cm,i)=>({v:String(i),l:cm.name}))];
+  el.innerHTML=btns.map(b=>{
+    const isAll=b.v==='all';
+    const idx=isAll?-1:+b.v;
+    const active=statsCmFilter===b.v;
+    const col=isAll?'#444':cc(idx);
+    const bg=isAll?'#f0f0f0':cbg(idx);
+    return`<div class="f-btn${active?' active':''}" data-scm="${b.v}" style="${active?'background:'+bg+';color:'+col+';border-color:'+col+';font-weight:700':''}">${b.l}</div>`;
+  }).join('');
+  el.querySelectorAll('[data-scm]').forEach(b=>b.addEventListener('click',()=>{
+    statsCmFilter=b.dataset.scm;rStatsCmBtns();rStats();
+  }));
 }
 
 function rStats(){
   const ym=document.getElementById('monthSel')?.value;if(!ym)return;
   const el=document.getElementById('statsContent');
   const yms=ym.replace('-','/');
-  const data=(S.entries||[]).filter(e=>e.date&&e.date.startsWith(yms));
   const[y,mo]=ym.split('-');
-  const cmS=(S.cms||[]).map((cm,i)=>{
+
+  // CMフィルター適用
+  const filterCmIdx=statsCmFilter==='all'?null:+statsCmFilter;
+  let data=(S.entries||[]).filter(e=>e.date&&e.date.startsWith(yms));
+  if(filterCmIdx!==null)data=data.filter(e=>e.cmIdx===filterCmIdx);
+
+  // 表示対象CMリスト
+  const targetCms=filterCmIdx!==null
+    ? (S.cms||[]).filter((_,i)=>i===filterCmIdx).map((cm,_,arr)=>({cm,i:filterCmIdx}))
+    : (S.cms||[]).map((cm,i)=>({cm,i}));
+
+  const cmS=targetCms.map(({cm,i})=>{
     const mine=data.filter(e=>e.cmIdx===i);
     const ac2={};mine.forEach(e=>(e.acts||[]).forEach(a=>{ac2[a]=(ac2[a]||0)+1;}));
     return{cm,i,total:mine.length,ac2};
   });
-  let h=`<div style="font-size:14px;font-weight:700;margin-bottom:12px;color:#111">${y}年${+mo}月 集計</div>`;
+
+  const cmLabel=filterCmIdx!==null&&S.cms[filterCmIdx]?S.cms[filterCmIdx].name+'CM ':'' ;
+  let h=`<div style="font-size:14px;font-weight:700;margin-bottom:12px;color:#111">${y}年${+mo}月 ${cmLabel}集計</div>`;
+
+  // サマリーカード
   h+=`<div class="stat-row">`;
-  cmS.forEach(({cm,i,total})=>{h+=`<div class="stat-card" style="border-left-color:${cc(i)}"><div class="stat-lbl" style="color:${cc(i)}">${cm.name}CM</div><div class="stat-num">${total}</div><div class="stat-sub">件</div></div>`;});
+  cmS.forEach(({cm,i,total,ac2})=>{
+    const visits=ac2['居宅訪問']||0;
+    h+=`<div class="stat-card" style="border-left-color:${cc(i)}">
+      <div class="stat-lbl" style="color:${cc(i)}">${cm.name}CM</div>
+      <div class="stat-num">${total}</div>
+      <div class="stat-sub">件（居宅訪問 ${visits}回）</div>
+    </div>`;
+  });
   h+=`</div>`;
+
+  // 業務種別内訳テーブル
   h+=`<div style="font-size:11px;font-weight:700;color:#888;margin-bottom:7px;letter-spacing:0.05em">業務種別内訳</div>`;
   h+=`<table style="width:100%;font-size:12px;border-collapse:collapse;table-layout:fixed;margin-bottom:16px">`;
-  h+=`<tr style="border-bottom:2px solid #e0e0e0"><th style="text-align:left;padding:6px;font-weight:700;color:#888;width:110px">業務</th>`+(S.cms||[]).map((_,i)=>`<th style="text-align:center;padding:6px;font-weight:700;color:${cc(i)}">${S.cms[i].name}</th>`).join('')+`<th style="text-align:center;padding:6px;font-weight:700;color:#888">計</th></tr>`;
-  (S.acts||[]).forEach(a=>{
-    const row=cmS.map(s=>s.ac2[a]||0);const tot=row.reduce((s,n)=>s+n,0);if(!tot)return;
-    h+=`<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:6px"><span class="badge" style="background:${ac(a)}1a;color:${ac(a)}">${a}</span></td>`+row.map(n=>`<td style="text-align:center;padding:6px;color:#222">${n||'-'}</td>`).join('')+`<td style="text-align:center;padding:6px;font-weight:700;color:#222">${tot}</td></tr>`;
-  });
+  if(filterCmIdx===null){
+    // 全員表示：CM列を並べる
+    h+=`<tr style="border-bottom:2px solid #e0e0e0"><th style="text-align:left;padding:6px;font-weight:700;color:#888;width:110px">業務</th>`+
+      cmS.map(({cm,i})=>`<th style="text-align:center;padding:6px;font-weight:700;color:${cc(i)}">${cm.name}</th>`).join('')+
+      `<th style="text-align:center;padding:6px;font-weight:700;color:#888">計</th></tr>`;
+    (S.acts||[]).forEach(a=>{
+      const row=cmS.map(s=>s.ac2[a]||0);const tot=row.reduce((s,n)=>s+n,0);if(!tot)return;
+      h+=`<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:6px"><span class="badge" style="background:${ac(a)}1a;color:${ac(a)}">${a}</span></td>`+
+        row.map(n=>`<td style="text-align:center;padding:6px;color:#222">${n||'-'}</td>`).join('')+
+        `<td style="text-align:center;padding:6px;font-weight:700;color:#222">${tot}</td></tr>`;
+    });
+  } else {
+    // 特定CM表示：業務と件数の2列シンプル表示
+    const s=cmS[0];
+    h+=`<tr style="border-bottom:2px solid #e0e0e0">
+      <th style="text-align:left;padding:6px;font-weight:700;color:#888">業務種別</th>
+      <th style="text-align:center;padding:6px;font-weight:700;color:${cc(filterCmIdx)}">件数</th></tr>`;
+    let totalActs=0;
+    (S.acts||[]).forEach(a=>{
+      const n=s?s.ac2[a]||0:0;if(!n)return;totalActs+=n;
+      h+=`<tr style="border-bottom:1px solid #f0f0f0">
+        <td style="padding:6px"><span class="badge" style="background:${ac(a)}1a;color:${ac(a)}">${a}</span></td>
+        <td style="text-align:center;padding:6px;font-weight:600;color:#222">${n}</td></tr>`;
+    });
+    h+=`<tr style="border-top:2px solid #e0e0e0">
+      <td style="padding:6px;font-weight:700;color:#888">合計</td>
+      <td style="text-align:center;padding:6px;font-weight:700;color:#222">${totalActs}</td></tr>`;
+  }
   h+=`</table>`;
-  h+=`<div style="font-size:11px;font-weight:700;color:#888;margin-bottom:8px;letter-spacing:0.05em">日別記録一覧</div>`;
+
+  // 日別記録一覧
+  const cmTitle=filterCmIdx!==null&&S.cms[filterCmIdx]?` — ${S.cms[filterCmIdx].name}CM`:'';
+  h+=`<div style="font-size:11px;font-weight:700;color:#888;margin-bottom:8px;letter-spacing:0.05em">日別記録一覧${cmTitle}</div>`;
   const byD={};data.forEach(e=>{if(!byD[e.date])byD[e.date]=[];byD[e.date].push(e);});
+  if(!Object.keys(byD).length){h+='<div style="padding:20px;text-align:center;color:#bbb;font-size:13px">記録がありません</div>';}
   Object.keys(byD).sort().forEach(d=>{
     h+=`<div style="font-size:11px;color:#666;margin:10px 0 4px;font-weight:700;border-left:3px solid #e0e0e0;padding-left:8px">${d}（${wd(d)}）</div>`;
     byD[d].slice().sort((a,b)=>a.timeFrom.localeCompare(b.timeFrom)).forEach(e=>{
@@ -466,7 +539,7 @@ function rStats(){
       const cls=(e.clientIds||[]).map(id=>clById(id)?.name).filter(Boolean).join('・');
       h+=`<div style="display:flex;gap:7px;font-size:12px;padding:4px 0 4px 11px;flex-wrap:wrap;align-items:baseline;border-bottom:1px solid #f8f8f8">
         <span style="color:#888;min-width:74px;flex-shrink:0">${ts}</span>
-        <span style="color:${cc(ci)};font-weight:700;flex-shrink:0">${S.cms[ci]?S.cms[ci].name:''}</span>
+        ${filterCmIdx===null?`<span style="color:${cc(ci)};font-weight:700;flex-shrink:0">${S.cms[ci]?S.cms[ci].name:''}CM</span>`:''}
         <span style="color:#222">${(e.acts||[]).join('・')}</span>
         ${cls?`<span style="color:#666">${cls}</span>`:''}
         ${e.place?`<span style="color:#aaa">@${e.place}</span>`:''}
@@ -480,7 +553,10 @@ function rStats(){
 document.getElementById('csvBtn').addEventListener('click',()=>{
   const ym=document.getElementById('monthSel').value;
   const yms=ym.replace('-','/');
-  const data=(S.entries||[]).filter(e=>e.date&&e.date.startsWith(yms)).slice().sort((a,b)=>a.date.localeCompare(b.date)||a.timeFrom.localeCompare(b.timeFrom));
+  const filterCmIdx=statsCmFilter==='all'?null:+statsCmFilter;
+  let data=(S.entries||[]).filter(e=>e.date&&e.date.startsWith(yms));
+  if(filterCmIdx!==null)data=data.filter(e=>e.cmIdx===filterCmIdx);
+  data=data.slice().sort((a,b)=>a.date.localeCompare(b.date)||a.timeFrom.localeCompare(b.timeFrom));
   const rows=[['日付','曜日','ケアマネ','開始','終了','業務','利用者','場所','メモ']];
   data.forEach(e=>{
     const ci=e.cmIdx!=null?+e.cmIdx:0;
@@ -489,7 +565,9 @@ document.getElementById('csvBtn').addEventListener('click',()=>{
   });
   const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='業務日誌_'+ym+'.csv';a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  const cmSuffix=filterCmIdx!==null&&S.cms[filterCmIdx]?'_'+S.cms[filterCmIdx].name:'';
+  a.download='業務日誌_'+ym+cmSuffix+'.csv';a.click();
 });
 
 function rSettings(){rCmSet();rClSet();rTags('acts','actTags','newAct','addActBtn');rTags('places','placeTags','newPlace','addPlaceBtn');}
