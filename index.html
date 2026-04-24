@@ -371,16 +371,26 @@ function rChips(){
 
 function rClientDrop(q){
   const el=document.getElementById('cList');
-  const list=(S.clients||[]).filter(c=>!c.inactive&&(!q||c.name.includes(q)));
-  if(!list.length){el.innerHTML='<div class="c-empty">該当なし</div>';return;}
+  const all=(S.clients||[]).filter(c=>!c.inactive);
+  // 担当CM一致は常に表示。他CM・未設定は検索ワードがあるときのみ表示
+  const list=all.filter(c=>{
+    const isMine=c.cmIdx===S.curCM;
+    if(q) return c.name.includes(q);
+    return isMine;
+  });
+  if(!list.length){
+    const msg=q?'該当なし':'担当利用者なし（検索で全員表示）';
+    el.innerHTML='<div class="c-empty">'+msg+'</div>';return;
+  }
   el.innerHTML=list.map(c=>{
     const ci=c.cmIdx!=null?+c.cmIdx:-1;
     const chk=selCl.has(c.id);
-    return`<div class="c-item" data-id="${c.id}">
-      <span class="c-chk">${chk?'✓':''}</span>
-      <span style="flex:1">${c.name}</span>
-      ${ci>=0&&S.cms[ci]?`<span class="c-cm-tag" style="background:${cbg(ci)};color:${cc(ci)}">${S.cms[ci].name}CM</span>`:''}
-    </div>`;
+    const isMine=c.cmIdx===S.curCM;
+    return'<div class="c-item" data-id="'+c.id+'">'
+      +'<span class="c-chk">'+(chk?'✓':'')+'</span>'
+      +'<span style="flex:1">'+c.name+'</span>'
+      +(!isMine&&ci>=0&&S.cms[ci]?'<span class="c-cm-tag" style="background:'+cbg(ci)+';color:'+cc(ci)+'">'+S.cms[ci].name+'CM</span>':'')
+      +'</div>';
   }).join('');
   el.querySelectorAll('.c-item').forEach(item=>item.addEventListener('click',()=>{
     const id=+item.dataset.id;selCl.has(id)?selCl.delete(id):selCl.add(id);
