@@ -109,14 +109,79 @@ textarea{min-height:52px;resize:vertical}
   .month-sel-row{display:none!important}
   body{background:#fff}
 }
+
+/* ログイン画面 */
+#loginScreen{position:fixed;inset:0;background:#f0f4f8;display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-card{background:#fff;border-radius:12px;padding:36px 28px;max-width:360px;width:90%;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.login-logo{font-size:32px;text-align:center;margin-bottom:8px}
+.login-title{font-size:17px;font-weight:700;color:#111;margin-bottom:4px;text-align:center}
+.login-sub{font-size:12px;color:#888;margin-bottom:24px;line-height:1.6;text-align:center}
+.login-field{margin-bottom:12px}
+.login-field label{display:block;font-size:12px;color:#666;font-weight:600;margin-bottom:4px}
+.login-field input{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none;transition:border 0.15s}
+.login-field input:focus{border-color:#1a73e8}
+.login-btn{width:100%;padding:11px;background:#1a73e8;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;margin-top:4px;transition:opacity 0.15s}
+.login-btn:hover{opacity:0.88}
+.login-btn:disabled{opacity:0.5;cursor:not-allowed}
+.login-error{font-size:12px;color:#e53935;margin-top:10px;min-height:18px;text-align:center}
+.login-toggle{text-align:center;margin-top:16px;font-size:12px;color:#888}
+.login-toggle a{color:#1a73e8;cursor:pointer;text-decoration:underline}
+/* ユーザー表示 */
+.user-info{display:flex;align-items:center;gap:6px;font-size:11px;color:#888}
+.logout-btn{background:none;border:none;cursor:pointer;font-size:11px;color:#1a73e8;padding:0;text-decoration:underline}
+/* パスワードリセット */
+.reset-link{display:block;text-align:right;font-size:11px;color:#1a73e8;cursor:pointer;margin-top:3px;text-decoration:underline}
 </style>
 </head>
 <body>
-<div class="app">
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">📋</div>
+    <div class="login-title">居宅介護支援 業務日誌</div>
+    <div class="login-sub">事業所スタッフ専用システムです。<br>メールアドレスとパスワードでログインしてください。</div>
+    <div id="loginForm">
+      <div class="login-field">
+        <label>メールアドレス</label>
+        <input type="email" id="loginEmail" placeholder="example@mail.com" autocomplete="email">
+      </div>
+      <div class="login-field">
+        <label>パスワード</label>
+        <input type="password" id="loginPassword" placeholder="パスワード" autocomplete="current-password">
+        <span class="reset-link" id="resetLink">パスワードを忘れた方</span>
+      </div>
+      <button class="login-btn" id="loginBtn">ログイン</button>
+      <div class="login-error" id="loginError"></div>
+      <div class="login-toggle">アカウントをお持ちでない方は<a id="toRegister">新規登録</a></div>
+    </div>
+    <div id="registerForm" style="display:none">
+      <div class="login-field">
+        <label>名前</label>
+        <input type="text" id="regName" placeholder="例：山田 太郎">
+      </div>
+      <div class="login-field">
+        <label>メールアドレス</label>
+        <input type="email" id="regEmail" placeholder="example@mail.com" autocomplete="email">
+      </div>
+      <div class="login-field">
+        <label>パスワード（6文字以上）</label>
+        <input type="password" id="regPassword" placeholder="パスワード" autocomplete="new-password">
+      </div>
+      <button class="login-btn" id="registerBtn">アカウントを作成</button>
+      <div class="login-error" id="registerError"></div>
+      <div class="login-toggle"><a id="toLogin">← ログインに戻る</a></div>
+    </div>
+  </div>
+</div>
+<div class="app" id="mainApp" style="display:none">
   <div class="topbar">
     <span class="topbar-title">業務日誌</span>
     <div class="cm-scroller" id="cmTabs"></div>
     <span class="sbadge" id="sbadge" style="background:#e8f5e9;color:#2e7d32">●同期済</span>
+    <div class="user-info" id="userInfo" style="display:none">
+      <span id="userName"></span>
+      <button class="logout-btn" id="logoutBtn">ログアウト</button>
+    </div>
   </div>
   <div class="sync-indicator" id="syncBar">Firebase接続中...</div>
   <div class="nav-tabs">
@@ -236,6 +301,7 @@ textarea{min-height:52px;resize:vertical}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
 import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAKeM-ID2Zi5Rmx5ihLb1Osk64WvQssb4A",
@@ -251,6 +317,108 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getDatabase(fbApp);
 const dbRef = ref(db, 'diary');
+const auth = getAuth(fbApp);
+
+// エラーメッセージ日本語化
+function authErrMsg(code){
+  const map={
+    'auth/invalid-email':'メールアドレスの形式が正しくありません',
+    'auth/user-not-found':'このメールアドレスは登録されていません',
+    'auth/wrong-password':'パスワードが間違っています',
+    'auth/email-already-in-use':'このメールアドレスはすでに登録されています',
+    'auth/weak-password':'パスワードは6文字以上にしてください',
+    'auth/too-many-requests':'ログイン試行が多すぎます。しばらくしてからお試しください',
+    'auth/invalid-credential':'メールアドレスまたはパスワードが間違っています',
+  };
+  return map[code]||('エラー: '+code);
+}
+
+// ログイン状態監視
+onAuthStateChanged(auth, user => {
+  if(user){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('mainApp').style.display='';
+    const ui=document.getElementById('userInfo');
+    ui.style.display='flex';
+    document.getElementById('userName').textContent=user.displayName||user.email;
+    startDbListener();
+  } else {
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('mainApp').style.display='none';
+    document.getElementById('userInfo').style.display='none';
+    document.getElementById('loginForm').style.display='';
+    document.getElementById('registerForm').style.display='none';
+  }
+});
+
+// ログイン
+document.getElementById('loginBtn').addEventListener('click', async ()=>{
+  const errEl=document.getElementById('loginError');
+  const btn=document.getElementById('loginBtn');
+  errEl.textContent='';
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPassword').value;
+  if(!email||!pass){errEl.textContent='メールアドレスとパスワードを入力してください';return;}
+  btn.disabled=true;btn.textContent='ログイン中...';
+  try{
+    await signInWithEmailAndPassword(auth,email,pass);
+  } catch(e){
+    errEl.textContent=authErrMsg(e.code);
+    btn.disabled=false;btn.textContent='ログイン';
+  }
+});
+document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginBtn').click();});
+
+// 新規登録フォーム切替
+document.getElementById('toRegister').addEventListener('click',()=>{
+  document.getElementById('loginForm').style.display='none';
+  document.getElementById('registerForm').style.display='';
+  document.getElementById('registerError').textContent='';
+});
+document.getElementById('toLogin').addEventListener('click',()=>{
+  document.getElementById('loginForm').style.display='';
+  document.getElementById('registerForm').style.display='none';
+  document.getElementById('loginError').textContent='';
+});
+
+// 新規登録
+document.getElementById('registerBtn').addEventListener('click', async ()=>{
+  const errEl=document.getElementById('registerError');
+  const btn=document.getElementById('registerBtn');
+  errEl.textContent='';
+  const name=document.getElementById('regName').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const pass=document.getElementById('regPassword').value;
+  if(!name||!email||!pass){errEl.textContent='すべての項目を入力してください';return;}
+  btn.disabled=true;btn.textContent='作成中...';
+  try{
+    const cred=await createUserWithEmailAndPassword(auth,email,pass);
+    await updateProfile(cred.user,{displayName:name});
+  } catch(e){
+    errEl.textContent=authErrMsg(e.code);
+    btn.disabled=false;btn.textContent='アカウントを作成';
+  }
+});
+
+// パスワードリセット
+document.getElementById('resetLink').addEventListener('click', async ()=>{
+  const email=document.getElementById('loginEmail').value.trim();
+  if(!email){document.getElementById('loginError').textContent='メールアドレスを入力してからクリックしてください';return;}
+  try{
+    await sendPasswordResetEmail(auth,email);
+    document.getElementById('loginError').style.color='#2e7d32';
+    document.getElementById('loginError').textContent='パスワードリセットメールを送信しました';
+  } catch(e){
+    document.getElementById('loginError').style.color='#e53935';
+    document.getElementById('loginError').textContent=authErrMsg(e.code);
+  }
+});
+
+// ログアウト
+document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+  if(!confirm('ログアウトしますか？'))return;
+  await signOut(auth);
+});
 
 const PAL=['#1a73e8','#0f9d58','#e8710a','#7c3aed','#c2410c','#db2777','#15803d','#dc2626'];
 const PALBG=['#e8f0fe','#e6f4ea','#fce8e6','#ede9fe','#fef3c7','#fce7f3','#dcfce7','#fee2e2'];
@@ -279,8 +447,13 @@ function setBadge(t,ok){
 }
 
 // Firebase リアルタイム同期
-setSyncBar('Firebase接続中...','syncing');
-const RESET_CLIENTS_VERSION = 'reset_v1'; // この値を変えるたびにリセット実行
+const RESET_CLIENTS_VERSION = 'reset_v1';
+let dbListenerStarted=false;
+
+function startDbListener(){
+  if(dbListenerStarted)return;
+  dbListenerStarted=true;
+  setSyncBar('Firebase接続中...','syncing');
 
 onValue(dbRef, (snapshot)=>{
   const data=snapshot.val();
@@ -306,6 +479,7 @@ onValue(dbRef, (snapshot)=>{
   setSyncBar('接続エラー: '+err.message,'error');
   setBadge('●オフライン',false);
 });
+} // end startDbListener
 
 function save(){
   clearTimeout(saveTimer);
