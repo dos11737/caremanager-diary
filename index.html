@@ -253,11 +253,7 @@ const PALBG=['#e8f0fe','#e6f4ea','#fce8e6','#ede9fe','#fef3c7','#fce7f3','#dcfce
 
 let S={
   cms:[{name:'山田'},{name:'田中'},{name:'佐藤'}],
-  clients:[
-    {id:1,name:'鈴木 一郎',cmIdx:0},{id:2,name:'田辺 花子',cmIdx:0},
-    {id:3,name:'中村 次郎',cmIdx:1},{id:4,name:'林 美子',cmIdx:1},
-    {id:5,name:'高橋 三郎',cmIdx:2}
-  ],
+  clients:[],
   acts:['居宅訪問','電話対応','担当者会議','サービス調整','アセスメント','書類作成','受診同行','内部会議'],
   places:['事業所','自宅','病院','施設','電話'],
   entries:[],
@@ -280,16 +276,24 @@ function setBadge(t,ok){
 
 // Firebase リアルタイム同期
 setSyncBar('Firebase接続中...','syncing');
+const RESET_CLIENTS_VERSION = 'reset_v1'; // この値を変えるたびにリセット実行
+
 onValue(dbRef, (snapshot)=>{
   const data=snapshot.val();
   if(data){
     Object.assign(S,data);
     if(!S.cms||!S.cms.length)S.cms=[{name:'山田'},{name:'田中'},{name:'佐藤'}];
-    if(!S.clients)S.clients=[];
     if(!S.acts||!S.acts.length)S.acts=['居宅訪問','電話対応','担当者会議','サービス調整','アセスメント','書類作成','受診同行','内部会議'];
     if(!S.places||!S.places.length)S.places=['事業所','自宅','病院','施設','電話'];
     if(!S.entries)S.entries=[];
     if(S.curCM==null)S.curCM=0;
+    // 利用者リセット：まだこのバージョンでリセットしていなければ強制クリア
+    if(S._clientsResetVersion !== RESET_CLIENTS_VERSION){
+      S.clients=[];
+      S._clientsResetVersion=RESET_CLIENTS_VERSION;
+      set(dbRef, S); // 即座にFirebaseにも反映
+    }
+    if(!S.clients)S.clients=[];
   }
   setSyncBar('リアルタイム同期中','');
   setBadge('●同期済',true);
