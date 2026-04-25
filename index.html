@@ -422,12 +422,27 @@ document.getElementById('registerBtn').addEventListener('click', async ()=>{
   const email=document.getElementById('regEmail').value.trim();
   const pass=document.getElementById('regPassword').value;
   if(!name||!email||!pass){errEl.textContent='すべての項目を入力してください';return;}
-  btn.disabled=true;btn.textContent='作成中...';
+  btn.disabled=true;btn.textContent='確認中...';
   try{
+    // 登録前にホワイトリストを確認
+    const snap = await get(allowedEmailsRef);
+    const allowed = snap.val();
+    const emailList = allowed ? Object.values(allowed).map(e=>e.toLowerCase().trim()) : [];
+    if(!emailList.includes(email.toLowerCase())){
+      errEl.textContent='このメールアドレスは登録が許可されていません。管理者にお問い合わせください。';
+      btn.disabled=false;btn.textContent='アカウントを作成';
+      return;
+    }
+    // 許可済みなら登録実行
+    btn.textContent='作成中...';
     const cred=await createUserWithEmailAndPassword(auth,email,pass);
     await updateProfile(cred.user,{displayName:name});
   } catch(e){
-    errEl.textContent=authErrMsg(e.code);
+    if(e.code){
+      errEl.textContent=authErrMsg(e.code);
+    } else {
+      errEl.textContent='エラーが発生しました。管理者にお問い合わせください。';
+    }
     btn.disabled=false;btn.textContent='アカウントを作成';
   }
 });
