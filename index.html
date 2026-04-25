@@ -140,6 +140,9 @@ textarea{min-height:52px;resize:vertical}
     <div class="login-logo">📋</div>
     <div class="login-title">居宅介護支援 業務日誌</div>
     <div class="login-sub">事業所スタッフ専用システムです。<br>メールアドレスとパスワードでログインしてください。</div>
+    <div id="accessDeniedMsg" style="display:none;background:#fff3f3;border:1px solid #f5c6c6;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#c62828;line-height:1.6">
+      ⛔ このアカウントはアクセスが許可されていません。<br>管理者にお問い合わせください。
+    </div>
     <div id="loginForm">
       <div class="login-field">
         <label>メールアドレス</label>
@@ -317,6 +320,7 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getDatabase(fbApp);
 const dbRef = ref(db, 'diary');
+const allowedEmailsRef = ref(db, 'diary/allowedEmails');
 const auth = getAuth(fbApp);
 
 // エラーメッセージ日本語化
@@ -334,8 +338,39 @@ function authErrMsg(code){
 }
 
 // ログイン状態監視
-onAuthStateChanged(auth, user => {
+function showLoginScreen(deniedMsg=''){
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('syncBar').style.display='none';
+  document.getElementById('userInfo').style.display='none';
+  document.getElementById('loginForm').style.display='';
+  document.getElementById('registerForm').style.display='none';
+  const dm=document.getElementById('accessDeniedMsg');
+  dm.style.display=deniedMsg?'':'none';
+  dbListenerStarted=false;
+}
+
+onAuthStateChanged(auth, async user => {
   if(user){
+    // ホワイトリスト確認
+    try{
+      const snap = await get(allowedEmailsRef);
+      const allowed = snap.val(); // 配列 or null
+      const emailList = allowed ? Object.values(allowed).map(e=>e.toLowerCase().trim()) : [];
+      if(!emailList.includes(user.email.toLowerCase())){
+        // 未許可 → 即サインアウトしてアクセス拒否表示
+        await signOut(auth);
+        showLoginScreen('denied');
+        return;
+      }
+    } catch(e){
+      // ルールエラー等 → ログイン画面に戻す
+      await signOut(auth);
+      showLoginScreen('denied');
+      return;
+    }
+    // 許可済み → アプリ表示
+    document.getElementById('accessDeniedMsg').style.display='none';
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('mainApp').style.display='';
     document.getElementById('syncBar').style.display='';
@@ -344,13 +379,7 @@ onAuthStateChanged(auth, user => {
     document.getElementById('userName').textContent=user.displayName||user.email;
     startDbListener();
   } else {
-    document.getElementById('loginScreen').style.display='flex';
-    document.getElementById('mainApp').style.display='none';
-    document.getElementById('syncBar').style.display='none';
-    document.getElementById('userInfo').style.display='none';
-    document.getElementById('loginForm').style.display='';
-    document.getElementById('registerForm').style.display='none';
-    dbListenerStarted=false;
+    showLoginScreen();
   }
 });
 
