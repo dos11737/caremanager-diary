@@ -188,8 +188,7 @@ const auth   = getAuth(app);
 // セッション永続化を明示的にlocalStorageに設定
 setPersistence(auth, browserLocalPersistence).catch(e=>console.warn('persistence:',e));
 const allowedRef = ref(db,'diary/allowedEmails');
-const clientsRef = ref(db,'diary/clients');
-const cmsRef     = ref(db,'diary/cms');
+const diaryRef   = ref(db,'diary');   // 業務日誌の全データ（cms・clientsを含む）
 const clRef      = ref(db,'diary/checklist2');
 
 const PAL   = ['#1a73e8','#0f9d58','#e8710a','#7c3aed','#c2410c','#db2777','#15803d','#dc2626'];
@@ -264,18 +263,25 @@ onAuthStateChanged(auth, async user=>{
 
 function startListeners(){
   started=true;
+  // チェックリスト独自データ
   onValue(clRef,snap=>{clData=snap.val()||{};renderAll();});
-  onValue(clientsRef,snap=>{
+  // 業務日誌の共有データ（diary全体を監視してcms・clientsを取り出す）
+  onValue(diaryRef,snap=>{
     const d=snap.val();
-    if(d){const arr=Array.isArray(d)?d:Object.values(d);clients=arr.filter(c=>c&&c.name&&!c.inactive).map(c=>({id:String(c.id),name:c.name,cmIdx:c.cmIdx!=null?+c.cmIdx:null}));}
-    else clients=[];
-    renderClientSel();renderGrid();renderUnchecked();
-  });
-  onValue(cmsRef,snap=>{
-    const d=snap.val();
-    if(d&&Array.isArray(d)&&d.length)cms=d;
-    else if(d&&!Array.isArray(d))cms=Object.values(d);
-    renderCmTabs();renderGrid();renderUnchecked();
+    if(!d)return;
+    // CMS
+    if(d.cms){
+      if(Array.isArray(d.cms)&&d.cms.length)cms=d.cms;
+      else if(!Array.isArray(d.cms))cms=Object.values(d.cms);
+    }
+    // 利用者
+    if(d.clients){
+      const arr=Array.isArray(d.clients)?d.clients:Object.values(d.clients);
+      clients=arr.filter(c=>c&&c.name&&!c.inactive).map(c=>({id:String(c.id),name:c.name,cmIdx:c.cmIdx!=null?+c.cmIdx:null}));
+    } else {
+      clients=[];
+    }
+    renderCmTabs();renderClientSel();renderInputForm();renderGrid();renderUnchecked();
   });
 }
 
