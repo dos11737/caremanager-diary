@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>書類交付チェックリスト | めぐみ荘 居宅システム</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;background:#f0f4f8;color:#222;min-height:100vh}
+#loginScreen{position:fixed;inset:0;background:#f0f4f8;display:flex;align-items:center;justify-content:center;z-index:9999}
+.lcard{background:#fff;border-radius:12px;padding:36px 28px;max-width:360px;width:90%;box-shadow:0 4px 20px rgba(0,0,0,0.1)}
+.llogo{font-size:30px;text-align:center;margin-bottom:8px}
+.ltitle{font-size:17px;font-weight:700;color:#111;text-align:center;margin-bottom:3px}
+.lsub{font-size:12px;color:#888;text-align:center;margin-bottom:20px;line-height:1.6}
+.lfield{margin-bottom:11px}
+.lfield label{display:block;font-size:11px;color:#666;font-weight:600;margin-bottom:3px}
+.lfield input{width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit}
+.lbtn{width:100%;padding:10px;background:#1a73e8;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;margin-top:4px}
+.lbtn:hover{opacity:0.88}
+.lerr{font-size:12px;color:#e53935;margin-top:8px;text-align:center;min-height:16px}
+.ltoggle{text-align:center;margin-top:14px;font-size:12px;color:#888}
+.ltoggle a{color:#1a73e8;cursor:pointer;text-decoration:underline}
+.lreset{display:block;text-align:right;font-size:11px;color:#1a73e8;cursor:pointer;margin-top:3px;text-decoration:underline}
+#accessDenied{display:none;background:#fff3f3;border:1px solid #f5c6c6;border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:12px;color:#c62828;line-height:1.6}
+#mainApp{display:none}
+.topbar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fff;border-bottom:1px solid #e5e5e5;position:sticky;top:0;z-index:50;flex-wrap:wrap}
+.topbar-title{font-size:13px;font-weight:700;color:#111;flex-shrink:0}
+.cm-scroller{display:flex;gap:5px;overflow-x:auto;flex:1;min-width:0}
+.cm-scroller::-webkit-scrollbar{display:none}
+.cm-tab{padding:5px 12px;border:1px solid #ccc;border-radius:16px;cursor:pointer;font-size:12px;white-space:nowrap;background:#fff;color:#666;flex-shrink:0}
+.user-area{display:flex;align-items:center;gap:6px;font-size:11px;color:#888;flex-shrink:0}
+.logout-btn{background:none;border:none;cursor:pointer;font-size:11px;color:#1a73e8;text-decoration:underline;padding:0}
+.back-link{font-size:11px;color:#1a73e8;text-decoration:none;padding:4px 8px;border:1px solid #c5ddf9;border-radius:6px;white-space:nowrap}
+.ctrl-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#fff;border-bottom:1px solid #e5e5e5;flex-wrap:wrap}
+.ctrl-bar select{padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;color:#222;font-family:inherit}
+.ctrl-bar label{font-size:12px;color:#666}
+.ebtn{padding:6px 12px;border:1px solid #1d6f42;color:#1d6f42;border-radius:6px;cursor:pointer;font-size:12px;background:#fff;font-weight:500;margin-left:auto}
+.ebtn:hover{background:#e8f5e9}
+.legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:11px;color:#666;padding:6px 12px;background:#fafafa;border-bottom:1px solid #eee}
+.leg-item{display:flex;align-items:center;gap:4px}
+.leg-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.main-wrap{display:flex;min-height:calc(100vh - 160px)}
+.input-panel{width:300px;min-width:260px;background:#fff;border-right:1px solid #e5e5e5;padding:12px;overflow-y:auto;flex-shrink:0}
+.ip-hd{font-size:12px;font-weight:700;color:#555;margin-bottom:10px}
+.client-sel-wrap{margin-bottom:12px}
+.client-sel-wrap label{font-size:11px;color:#888;display:block;margin-bottom:3px}
+.client-sel-wrap select{width:100%;padding:7px 9px;border:1px solid #ccc;border-radius:7px;font-size:13px;background:#fff;color:#222}
+.form-section{background:#f8f9fb;border-radius:8px;padding:10px;margin-bottom:10px;border:1px solid #e8eaed}
+.fs-title{font-size:10px;font-weight:700;color:#888;margin-bottom:8px;letter-spacing:0.06em;text-transform:uppercase}
+.check-row{display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-bottom:1px solid #f0f0f0;flex-wrap:wrap}
+.check-row:last-child{border-bottom:none}
+.check-row input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;margin-top:1px;accent-color:#1a73e8}
+.check-label{font-size:12px;color:#333;flex:1}
+.auto-badge{font-size:10px;color:#1a73e8;background:#dbeafe;border-radius:10px;padding:1px 6px;white-space:nowrap;flex-shrink:0}
+.period-wrap{width:100%;margin-top:6px;background:#e8f0fe;border-radius:6px;padding:8px 10px;border:1px solid #c5ddf9}
+.period-wrap .pw-label{font-size:10px;color:#1565c0;font-weight:700;margin-bottom:4px}
+.period-inputs{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.period-inputs input[type=date]{padding:4px 5px;border:1px solid #90caf9;border-radius:5px;font-size:11px;background:#fff;color:#222;font-family:inherit}
+.period-inputs span{font-size:11px;color:#555}
+.jittai-wrap{width:100%;margin-top:6px;background:#fffbeb;border-radius:6px;padding:8px 10px;border:1px solid #fde68a}
+.jittai-wrap .jw-label{font-size:10px;color:#92400e;font-weight:700;margin-bottom:5px}
+.jittai-entry{display:flex;align-items:center;gap:5px;margin-bottom:4px}
+.jittai-entry input[type=date]{padding:3px 5px;border:1px solid #fbbf24;border-radius:5px;font-size:11px;font-family:inherit;background:#fff;flex:1}
+.jittai-entry .jdel{background:none;border:none;cursor:pointer;color:#bbb;font-size:15px;padding:0;line-height:1;flex-shrink:0}
+.jittai-entry .jdel:hover{color:#e53935}
+.add-j-btn{font-size:11px;color:#92400e;background:none;border:1px dashed #fbbf24;border-radius:5px;padding:3px 8px;cursor:pointer;width:100%;margin-top:2px}
+.add-j-btn:hover{background:#fef3c7}
+.grid-panel{flex:1;overflow-x:auto;padding:12px;min-width:0}
+.grid-title{font-size:12px;font-weight:700;color:#555;margin-bottom:8px}
+.cl-table{border-collapse:collapse;font-size:11px;white-space:nowrap}
+.cl-table th,.cl-table td{border:1px solid #e0e0e0;padding:4px 6px;text-align:center}
+.cl-table th{background:#f5f5f5;font-weight:600;color:#555}
+.cl-table th.sticky-col{position:sticky;left:0;z-index:3;text-align:left;min-width:80px}
+.cl-table td.sticky-col{position:sticky;left:0;z-index:1;background:#fff;text-align:left;cursor:pointer;color:#1a73e8;font-weight:500}
+.cl-table td.sticky-col:hover{text-decoration:underline}
+.dot{width:13px;height:13px;border-radius:50%;display:inline-block;vertical-align:middle}
+.dot-ok{background:#1a73e8}
+.dot-auto{background:#93c5fd}
+.dot-empty{background:#f0f0f0;border:1px solid #ddd}
+.cur-m-cell{outline:2px solid #1a73e8;outline-offset:0px}
+.unchecked-panel{background:#fff;border-top:1px solid #e5e5e5;padding:10px 12px}
+.unc-title{font-size:12px;font-weight:700;color:#555;margin-bottom:6px}
+.unc-list{display:flex;flex-wrap:wrap;gap:5px}
+.unc-chip{font-size:11px;padding:3px 10px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:12px;cursor:pointer}
+.unc-chip:hover{background:#ffe0b2}
+.unc-ok{font-size:12px;color:#2e7d32;padding:4px 0}
+@media(max-width:640px){
+  .main-wrap{flex-direction:column}
+  .input-panel{width:100%;border-right:none;border-bottom:1px solid #e5e5e5}
+}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="lcard">
+    <div class="llogo">📋</div>
+    <div class="ltitle">めぐみ荘 居宅システム</div>
+    <div class="lsub">書類交付チェックリスト</div>
+    <div id="accessDenied">⛔ このアカウントはアクセスが許可されていません。<br>管理者にお問い合わせください。</div>
+    <div id="lLoginForm">
+      <div class="lfield"><label>メールアドレス</label><input type="email" id="lEmail" placeholder="example@mail.com" autocomplete="email"></div>
+      <div class="lfield">
+        <label>パスワード</label>
+        <input type="password" id="lPass" placeholder="パスワード" autocomplete="current-password">
+        <span class="lreset" id="lResetLink">パスワードを忘れた方</span>
+      </div>
+      <button class="lbtn" id="lLoginBtn">ログイン</button>
+      <div class="lerr" id="lLoginErr"></div>
+      <div class="ltoggle">アカウントをお持ちでない方は<a id="lToRegister">新規登録</a></div>
+    </div>
+    <div id="lRegForm" style="display:none">
+      <div class="lfield"><label>名前</label><input type="text" id="lRegName" placeholder="例：山田 太郎"></div>
+      <div class="lfield"><label>メールアドレス</label><input type="email" id="lRegEmail" placeholder="example@mail.com"></div>
+      <div class="lfield"><label>パスワード（6文字以上）</label><input type="password" id="lRegPass" placeholder="パスワード"></div>
+      <button class="lbtn" id="lRegBtn">アカウントを作成</button>
+      <div class="lerr" id="lRegErr"></div>
+      <div class="ltoggle"><a id="lToLogin">← ログインに戻る</a></div>
+    </div>
+  </div>
+</div>
+
+<div id="mainApp">
+  <div class="topbar">
+    <span class="topbar-title">書類チェックリスト</span>
+    <div class="cm-scroller" id="cmTabs"></div>
+    <a href="index.html" class="back-link">← 業務日誌</a>
+    <div class="user-area" id="userArea" style="display:none">
+      <span id="uName"></span>
+      <button class="logout-btn" id="logoutBtn">ログアウト</button>
+    </div>
+  </div>
+
+  <div class="ctrl-bar">
+    <label>年度</label>
+    <select id="ySel"></select>
+    <label style="margin-left:6px">表示月</label>
+    <select id="mSel"></select>
+    <button class="ebtn" id="excelBtn">Excel出力</button>
+  </div>
+
+  <div class="legend">
+    <span style="font-weight:600;color:#555">凡例</span>
+    <div class="leg-item"><div class="leg-dot dot-ok"></div>チェック済</div>
+    <div class="leg-item"><div class="leg-dot dot-auto"></div>自動（期間内）</div>
+    <div class="leg-item"><div class="leg-dot dot-empty"></div>未チェック</div>
+  </div>
+
+  <div class="main-wrap">
+    <div class="input-panel">
+      <div class="ip-hd">📝 入力</div>
+      <div class="client-sel-wrap">
+        <label>利用者</label>
+        <select id="clientSel"><option value="">── 選択してください ──</option></select>
+      </div>
+      <div id="inputForm"><div style="font-size:12px;color:#aaa;padding:16px 0;text-align:center">利用者を選択してください</div></div>
+    </div>
+    <div class="grid-panel">
+      <div class="grid-title" id="gridTitle">年度チェック一覧</div>
+      <div id="gridWrap"></div>
+    </div>
+  </div>
+
+  <div class="unchecked-panel">
+    <div class="unc-title" id="uncTitle">当月 未チェック利用者</div>
+    <div class="unc-list" id="uncList"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
+import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAKeM-ID2Zi5Rmx5ihLb1Osk64WvQssb4A",
+  authDomain: "caramanagerdiary.firebaseapp.com",
+  databaseURL: "https://caramanagerdiary-default-rtdb.firebaseio.com",
+  projectId: "caramanagerdiary",
+  storageBucket: "caramanagerdiary.firebasestorage.app",
+  messagingSenderId: "296395564903",
+  appId: "1:296395564903:web:8db67477a693a8378571c2"
+};
+const app    = initializeApp(firebaseConfig);
+const db     = getDatabase(app);
+const auth   = getAuth(app);
+// セッション永続化を明示的にlocalStorageに設定
+setPersistence(auth, browserLocalPersistence).catch(e=>console.warn('persistence:',e));
+const allowedRef = ref(db,'diary/allowedEmails');
+const clientsRef = ref(db,'diary/clients');
+const cmsRef     = ref(db,'diary/cms');
+const clRef      = ref(db,'diary/checklist2');
+
+const PAL   = ['#1a73e8','#0f9d58','#e8710a','#7c3aed','#c2410c','#db2777','#15803d','#dc2626'];
+const PALBG = ['#e8f0fe','#e6f4ea','#fce8e6','#ede9fe','#fef3c7','#fce7f3','#dcfce7','#fee2e2'];
+const FISCAL = [4,5,6,7,8,9,10,11,12,1,2,3];
+const J_DOCS = [
+  {key:'jittai',    label:'実態把握票', hasJittai:true},
+  {key:'careplan',  label:'ケアプラン',  hasPeriod:true},
+  {key:'teikyohyo', label:'提供票'}
+];
+const F_DOCS = [
+  {key:'careplan', label:'ケアプラン', hasPeriod:true},
+  {key:'riyohyo',  label:'利用票'}
+];
+
+let cms=[{name:'山田'},{name:'田中'},{name:'佐藤'}];
+let clients=[];
+let clData={};
+let curCM=0, curYear=fy(), curMonth=new Date().getMonth()+1;
+let selCid=null, saveTimer=null, started=false;
+
+function fy(){const d=new Date();return d.getMonth()>=3?d.getFullYear():d.getFullYear()-1;}
+function pad(n){return String(n).padStart(2,'0');}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function cc(i){return PAL[i%PAL.length];}
+function cbg(i){return PALBG[i%PALBG.length];}
+
+function doSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>set(clRef,clData||{}).catch(e=>console.error(e)),700);
+}
+function authMsg(code){
+  const m={'auth/invalid-email':'メールアドレスの形式が正しくありません','auth/user-not-found':'このメールアドレスは登録されていません',
+    'auth/wrong-password':'パスワードが間違っています','auth/email-already-in-use':'このメールアドレスはすでに登録されています',
+    'auth/weak-password':'パスワードは6文字以上にしてください','auth/too-many-requests':'しばらく待ってからお試しください',
+    'auth/invalid-credential':'メールアドレスまたはパスワードが間違っています'};
+  return m[code]||'エラー: '+code;
+}
+function showLogin(denied=false){
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('accessDenied').style.display=denied?'':'none';
+  document.getElementById('lLoginForm').style.display='';
+  document.getElementById('lRegForm').style.display='none';
+  document.getElementById('userArea').style.display='none';
+  started=false;
+}
+
+onAuthStateChanged(auth, async user=>{
+  if(user){
+    try{
+      const snap=await get(allowedRef);
+      const al=snap.val();
+      if(al){
+        const list=Object.values(al).map(e=>e.toLowerCase().trim());
+        if(!list.includes(user.email.toLowerCase())){
+          await signOut(auth);showLogin(true);return;
+        }
+      }
+      // allowedEmailsが読めない場合（ルール設定前等）はそのまま通す
+    }catch(e){
+      console.warn('allowedEmails読み込みエラー（続行）:',e.message);
+      // catchしてもサインアウトしない
+    }
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('mainApp').style.display='';
+    document.getElementById('userArea').style.display='flex';
+    document.getElementById('uName').textContent=user.displayName||user.email;
+    if(!started)startListeners();
+  }else showLogin();
+});
+
+function startListeners(){
+  started=true;
+  onValue(clRef,snap=>{clData=snap.val()||{};renderAll();});
+  onValue(clientsRef,snap=>{
+    const d=snap.val();
+    if(d){const arr=Array.isArray(d)?d:Object.values(d);clients=arr.filter(c=>c&&c.name&&!c.inactive).map(c=>({id:String(c.id),name:c.name,cmIdx:c.cmIdx!=null?+c.cmIdx:null}));}
+    else clients=[];
+    renderClientSel();renderGrid();renderUnchecked();
+  });
+  onValue(cmsRef,snap=>{
+    const d=snap.val();
+    if(d&&Array.isArray(d)&&d.length)cms=d;
+    else if(d&&!Array.isArray(d))cms=Object.values(d);
+    renderCmTabs();renderGrid();renderUnchecked();
+  });
+}
+
+// ── ログイン ──
+document.getElementById('lLoginBtn').addEventListener('click',async()=>{
+  const err=document.getElementById('lLoginErr');err.textContent='';
+  const btn=document.getElementById('lLoginBtn');
+  const email=document.getElementById('lEmail').value.trim();
+  const pass=document.getElementById('lPass').value;
+  if(!email||!pass){err.textContent='入力してください';return;}
+  btn.disabled=true;btn.textContent='ログイン中...';
+  try{
+    await setPersistence(auth, browserLocalPersistence);
+    await signInWithEmailAndPassword(auth,email,pass);}
+  catch(e){err.textContent=authMsg(e.code);btn.disabled=false;btn.textContent='ログイン';}
+});
+document.getElementById('lPass').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('lLoginBtn').click();});
+document.getElementById('lToRegister').addEventListener('click',()=>{document.getElementById('lLoginForm').style.display='none';document.getElementById('lRegForm').style.display='';});
+document.getElementById('lToLogin').addEventListener('click',()=>{document.getElementById('lLoginForm').style.display='';document.getElementById('lRegForm').style.display='none';});
+document.getElementById('lRegBtn').addEventListener('click',async()=>{
+  const err=document.getElementById('lRegErr');err.textContent='';
+  const btn=document.getElementById('lRegBtn');
+  const name=document.getElementById('lRegName').value.trim();
+  const email=document.getElementById('lRegEmail').value.trim();
+  const pass=document.getElementById('lRegPass').value;
+  if(!name||!email||!pass){err.textContent='すべて入力してください';return;}
+  btn.disabled=true;btn.textContent='確認中...';
+  try{
+    let permitted=true;
+    try{
+      const snap=await get(allowedRef);const al=snap.val();
+      if(al){
+        const list=Object.values(al).map(e=>e.toLowerCase().trim());
+        if(!list.includes(email.toLowerCase()))permitted=false;
+      }
+    }catch(re){console.warn('allowedEmails確認エラー:',re.message);}
+    if(!permitted){err.textContent='このメールアドレスは登録が許可されていません。管理者にお問い合わせください。';btn.disabled=false;btn.textContent='アカウントを作成';return;}
+    btn.textContent='作成中...';
+    const cred=await createUserWithEmailAndPassword(auth,email,pass);
+    await updateProfile(cred.user,{displayName:name});
+  }catch(e){err.textContent=authMsg(e.code);btn.disabled=false;btn.textContent='アカウントを作成';}
+});
+document.getElementById('lResetLink').addEventListener('click',async()=>{
+  const email=document.getElementById('lEmail').value.trim();
+  const err=document.getElementById('lLoginErr');
+  if(!email){err.style.color='#e53935';err.textContent='メールアドレスを入力してからクリックしてください';return;}
+  try{await sendPasswordResetEmail(auth,email);err.style.color='#2e7d32';err.textContent='リセットメールを送信しました';}
+  catch(e){err.style.color='#e53935';err.textContent=authMsg(e.code);}
+});
+document.getElementById('logoutBtn').addEventListener('click',async()=>{if(!confirm('ログアウトしますか？'))return;await signOut(auth);});
+
+// ── 年度・月セレクタ ──
+function initSelectors(){
+  const yEl=document.getElementById('ySel');
+  const mEl=document.getElementById('mSel');
+  const ny=fy();
+  for(let y=ny-2;y<=ny+1;y++){
+    const o=document.createElement('option');
+    o.value=y;o.textContent=y+'年度 ('+y+'/4〜'+(y+1)+'/3)';
+    if(y===curYear)o.selected=true;
+    yEl.appendChild(o);
+  }
+  mEl.innerHTML=FISCAL.map(m=>`<option value="${m}"${m===curMonth?' selected':''}>${m}月</option>`).join('');
+  yEl.addEventListener('change',()=>{curYear=+yEl.value;renderGrid();renderUnchecked();});
+  mEl.addEventListener('change',()=>{curMonth=+mEl.value;renderInputForm();renderGrid();renderUnchecked();});
+}
+
+// ── CMタブ ──
+function renderCmTabs(){
+  const el=document.getElementById('cmTabs');
+  el.innerHTML=cms.map((cm,i)=>`<div class="cm-tab" data-i="${i}" style="${i===curCM?'background:'+cbg(i)+';color:'+cc(i)+';border-color:'+cc(i)+';font-weight:700':''}">${cm.name}CM</div>`).join('');
+  el.querySelectorAll('.cm-tab').forEach(t=>t.addEventListener('click',()=>{
+    curCM=+t.dataset.i;selCid=null;
+    renderCmTabs();renderClientSel();renderInputForm();renderGrid();renderUnchecked();
+  }));
+}
+
+// ── 利用者セレクト ──
+function myCls(){return clients.filter(c=>c.cmIdx===curCM);}
+function renderClientSel(){
+  const sel=document.getElementById('clientSel');
+  const prev=sel.value;
+  const list=myCls();
+  sel.innerHTML='<option value="">── 選択してください ──</option>'+list.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  if(prev&&list.find(c=>c.id===prev))sel.value=prev;
+  else{if(!list.find(c=>c.id===selCid))selCid=null;}
+}
+document.getElementById('clientSel').addEventListener('change',function(){selCid=this.value||null;renderInputForm();});
+
+// ── データアクセサ ──
+function cd(cid){if(!clData[cid])clData[cid]={};return clData[cid];}
+function getChk(cid,type,key,m,y){return !!(cd(cid)[type+'_'+key+'_'+y+'_'+m]);}
+function setChk(cid,type,key,m,y,v){cd(cid)[type+'_'+key+'_'+y+'_'+m]=v;doSave();}
+function getPeriod(cid,ptype){return cd(cid)['period_'+ptype]||{s:'',e:''};}
+function setPeriod(cid,ptype,s,e){cd(cid)['period_'+ptype]={s,e};doSave();}
+function getJDates(cid){return cd(cid).jittaiDates||[];}
+function setJDates(cid,arr){cd(cid).jittaiDates=arr;doSave();}
+
+function inPeriod(cid,ptype,y,m){
+  const p=getPeriod(cid,ptype);if(!p.s||!p.e)return false;
+  const ym=y*100+m;
+  const ps=parseInt(p.s.replace(/-/g,'').slice(0,6));
+  const pe=parseInt(p.e.replace(/-/g,'').slice(0,6));
+  return ym>=ps&&ym<=pe;
+}
+function inJittai(cid,y,m){
+  const dates=getJDates(cid).filter(d=>d.date).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!dates.length)return false;
+  const ym=y*100+m;
+  for(let i=0;i<dates.length;i++){
+    const s=parseInt(dates[i].date.replace(/-/g,'').slice(0,6));
+    const e=i+1<dates.length?parseInt(dates[i+1].date.replace(/-/g,'').slice(0,6)):999999;
+    if(ym>=s&&ym<e)return true;
+  }
+  return false;
+}
+function fiscalYearOf(m,baseY){return m>=4?baseY:baseY+1;}
+
+// ── 入力フォーム ──
+function renderInputForm(){
+  const el=document.getElementById('inputForm');
+  if(!selCid){el.innerHTML='<div style="font-size:12px;color:#aaa;padding:16px 0;text-align:center">利用者を選択してください</div>';return;}
+  const cid=selCid;const y=curYear;const m=curMonth;
+  let h='';
+
+  // 事業所向け
+  h+=`<div class="form-section"><div class="fs-title">事業所向け</div>`;
+  for(const doc of J_DOCS){
+    const autoJ=doc.hasJittai&&inJittai(cid,y,m);
+    const autoCp=doc.hasPeriod&&inPeriod(cid,'j',y,m);
+    const isAuto=autoJ||autoCp;
+    const chk=isAuto||getChk(cid,'j',doc.key,m,y);
+    h+=`<div class="check-row">
+      <input type="checkbox" ${chk?'checked':''} ${isAuto?'disabled':''} data-t="j" data-k="${doc.key}" data-m="${m}" data-y="${y}" data-cid="${cid}">
+      <span class="check-label">${doc.label}</span>
+      ${isAuto?'<span class="auto-badge">自動</span>':''}
+    </div>`;
+    if(doc.hasJittai){
+      const dates=getJDates(cid);
+      h+=`<div class="jittai-wrap" style="width:100%;margin-top:6px">
+        <div class="jw-label">📅 実態把握票 作成日</div>
+        <div id="jentries_${cid}">
+          ${dates.map(d=>`<div class="jittai-entry">
+            <input type="date" class="jdate" data-cid="${cid}" data-jid="${d.id}" value="${d.date||''}">
+            <button class="jdel" data-cid="${cid}" data-jid="${d.id}">×</button>
+          </div>`).join('')}
+        </div>
+        <button class="add-j-btn" data-cid="${cid}">＋ 作成日を追加</button>
+      </div>`;
+    }
+    if(doc.hasPeriod){
+      const p=getPeriod(cid,'j');
+      h+=`<div class="period-wrap" style="width:100%;margin-top:6px">
+        <div class="pw-label">📆 ケアプラン有効期間（事業所）</div>
+        <div class="period-inputs">
+          <input type="date" class="cps" data-cid="${cid}" data-pt="j" value="${p.s||''}">
+          <span>〜</span>
+          <input type="date" class="cpe" data-cid="${cid}" data-pt="j" value="${p.e||''}">
+        </div>
+      </div>`;
+    }
+  }
+  h+=`</div>`;
+
+  // 利用者・家族向け
+  h+=`<div class="form-section"><div class="fs-title">利用者・家族向け</div>`;
+  for(const doc of F_DOCS){
+    const isAuto=doc.hasPeriod&&inPeriod(cid,'f',y,m);
+    const chk=isAuto||getChk(cid,'f',doc.key,m,y);
+    h+=`<div class="check-row">
+      <input type="checkbox" ${chk?'checked':''} ${isAuto?'disabled':''} data-t="f" data-k="${doc.key}" data-m="${m}" data-y="${y}" data-cid="${cid}">
+      <span class="check-label">${doc.label}</span>
+      ${isAuto?'<span class="auto-badge">自動</span>':''}
+    </div>`;
+    if(doc.hasPeriod){
+      const p=getPeriod(cid,'f');
+      h+=`<div class="period-wrap" style="width:100%;margin-top:6px">
+        <div class="pw-label">📆 ケアプラン有効期間（利用者）</div>
+        <div class="period-inputs">
+          <input type="date" class="cps" data-cid="${cid}" data-pt="f" value="${p.s||''}">
+          <span>〜</span>
+          <input type="date" class="cpe" data-cid="${cid}" data-pt="f" value="${p.e||''}">
+        </div>
+      </div>`;
+    }
+  }
+  h+=`</div>`;
+  el.innerHTML=h;
+
+  // イベント：チェック
+  el.querySelectorAll('input[type=checkbox][data-k]').forEach(cb=>{
+    cb.addEventListener('change',function(){
+      setChk(this.dataset.cid,this.dataset.t,this.dataset.k,+this.dataset.m,+this.dataset.y,this.checked);
+      renderGrid();renderUnchecked();
+    });
+  });
+  // ケアプラン期間
+  el.querySelectorAll('.cps,.cpe').forEach(inp=>{
+    inp.addEventListener('change',function(){
+      const cid=this.dataset.cid;const pt=this.dataset.pt;
+      const wrap=this.closest('.period-wrap');
+      const s=wrap.querySelector('.cps').value;
+      const e=wrap.querySelector('.cpe').value;
+      setPeriod(cid,pt,s,e);
+      renderInputForm();renderGrid();renderUnchecked();
+    });
+  });
+  // 実態把握票日付
+  el.querySelectorAll('.jdate').forEach(inp=>{
+    inp.addEventListener('change',function(){
+      const cid=this.dataset.cid;const jid=this.dataset.jid;
+      const dates=getJDates(cid);
+      const entry=dates.find(d=>d.id===jid);
+      if(entry)entry.date=this.value;
+      setJDates(cid,dates);
+      renderInputForm();renderGrid();renderUnchecked();
+    });
+  });
+  el.querySelectorAll('.jdel').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      const cid=this.dataset.cid;const jid=this.dataset.jid;
+      setJDates(cid,getJDates(cid).filter(d=>d.id!==jid));
+      renderInputForm();renderGrid();renderUnchecked();
+    });
+  });
+  el.querySelectorAll('.add-j-btn').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      const cid=this.dataset.cid;
+      const dates=getJDates(cid);dates.push({id:uid(),date:''});
+      setJDates(cid,dates);renderInputForm();
+    });
+  });
+}
+
+// ── グリッド ──
+function renderGrid(){
+  const el=document.getElementById('gridWrap');
+  const list=myCls();const y=curYear;
+  document.getElementById('gridTitle').textContent=y+'年度（'+y+'/4〜'+(y+1)+'/3） チェック一覧';
+  if(!list.length){el.innerHTML='<div style="padding:24px;text-align:center;color:#aaa;font-size:13px">担当利用者が登録されていません</div>';return;}
+
+  const allDocs=[
+    ...J_DOCS.map(d=>({...d,type:'j',grp:'事業所'})),
+    ...F_DOCS.map(d=>({...d,type:'f',grp:'利用者・家族'}))
+  ];
+
+  let h=`<div style="overflow-x:auto"><table class="cl-table">
+    <thead>
+      <tr>
+        <th class="sticky-col" rowspan="3">利用者</th>
+        <th colspan="${J_DOCS.length*12}" style="background:#e8f0fe;color:#1a73e8">事業所向け</th>
+        <th colspan="${F_DOCS.length*12}" style="background:#e8f5e9;color:#0f9d58">利用者・家族向け</th>
+      </tr>
+      <tr>
+        ${J_DOCS.map(d=>`<th colspan="12" style="background:#e8f0fe;color:#1a73e8;font-size:10px">${d.label}</th>`).join('')}
+        ${F_DOCS.map(d=>`<th colspan="12" style="background:#e8f5e9;color:#0f9d58;font-size:10px">${d.label}</th>`).join('')}
+      </tr>
+      <tr>
+        ${allDocs.map(d=>FISCAL.map(m=>{
+          const isCur=m===curMonth;
+          return`<th style="font-size:9px;padding:2px 1px;min-width:16px;${isCur?'background:#dbeafe;color:#1a73e8':''}">${m}</th>`;
+        }).join('')).join('')}
+      </tr>
+    </thead>
+    <tbody>`;
+
+  for(const c of list){
+    h+=`<tr><td class="sticky-col" data-cid="${c.id}">${c.name}</td>`;
+    for(const doc of allDocs){
+      for(const m of FISCAL){
+        const fy2=fiscalYearOf(m,y);
+        const autoJ=doc.hasJittai&&inJittai(c.id,fy2,m);
+        const autoCp=doc.hasPeriod&&inPeriod(c.id,doc.type,fy2,m);
+        const isAuto=autoJ||autoCp;
+        const chk=isAuto||getChk(c.id,doc.type,doc.key,m,fy2);
+        const isCur=m===curMonth;
+        let dotClass=chk?(isAuto?'dot-auto':'dot-ok'):'dot-empty';
+        h+=`<td style="padding:3px;${isCur?'background:#f0f7ff':''}">
+          <div class="dot ${dotClass}${isCur?' cur-m-cell':''}"></div>
+        </td>`;
+      }
+    }
+    h+=`</tr>`;
+  }
+  h+=`</tbody></table></div>`;
+  el.innerHTML=h;
+
+  el.querySelectorAll('.sticky-col[data-cid]').forEach(td=>{
+    td.addEventListener('click',()=>{
+      selCid=td.dataset.cid;
+      document.getElementById('clientSel').value=selCid;
+      renderInputForm();
+      document.querySelector('.input-panel').scrollIntoView({behavior:'smooth'});
+    });
+  });
+}
+
+// ── 未チェックリスト ──
+function renderUnchecked(){
+  const el=document.getElementById('uncList');
+  const title=document.getElementById('uncTitle');
+  const m=curMonth;const y=curYear;
+  title.textContent=y+'年'+m+'月　未チェック利用者';
+  const list=myCls();
+  const unc=list.filter(c=>{
+    for(const doc of J_DOCS){
+      if(!(doc.hasJittai&&inJittai(c.id,y,m))&&!(doc.hasPeriod&&inPeriod(c.id,'j',y,m))&&!getChk(c.id,'j',doc.key,m,y))return true;
+    }
+    for(const doc of F_DOCS){
+      if(!(doc.hasPeriod&&inPeriod(c.id,'f',y,m))&&!getChk(c.id,'f',doc.key,m,y))return true;
+    }
+    return false;
+  });
+  if(!unc.length){el.innerHTML='<div class="unc-ok">✅ 全員チェック済みです</div>';return;}
+  el.innerHTML=unc.map(c=>`<div class="unc-chip" data-cid="${c.id}">${c.name}</div>`).join('');
+  el.querySelectorAll('.unc-chip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      selCid=chip.dataset.cid;
+      document.getElementById('clientSel').value=selCid;
+      renderInputForm();
+      document.querySelector('.input-panel').scrollIntoView({behavior:'smooth'});
+    });
+  });
+}
+
+// ── Excel出力 ──
+document.getElementById('excelBtn').addEventListener('click',()=>{
+  const list=myCls();const y=curYear;
+  if(!list.length){alert('担当利用者がいません');return;}
+  const wb=XLSX.utils.book_new();
+
+  function makeSheet(docs,ptype,sheetName){
+    const hdr=['利用者',...FISCAL.map(m=>m+'月')];
+    const rows=[];
+    for(const doc of docs){
+      rows.push([`【${doc.label}】`,...FISCAL.map(()=>'')]);
+      for(const c of list){
+        const row=[c.name];
+        for(const m of FISCAL){
+          const fy2=fiscalYearOf(m,y);
+          const autoJ=doc.hasJittai&&inJittai(c.id,fy2,m);
+          const autoCp=doc.hasPeriod&&inPeriod(c.id,ptype,fy2,m);
+          if(autoJ||autoCp)row.push('自動');
+          else row.push(getChk(c.id,ptype,doc.key,m,fy2)?'✓':'');
+        }
+        rows.push(row);
+      }
+      rows.push([]);
+    }
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([hdr,...rows]),sheetName);
+  }
+  makeSheet(J_DOCS,'j','事業所向け');
+  makeSheet(F_DOCS,'f','利用者・家族向け');
+  XLSX.writeFile(wb,`書類チェック_${cms[curCM]?.name||''}CM_${y}年度.xlsx`);
+});
+
+function renderAll(){
+  renderCmTabs();renderClientSel();renderInputForm();renderGrid();renderUnchecked();
+}
+
+initSelectors();
+</script>
+</body>
+</html>
