@@ -239,10 +239,19 @@ function showLogin(denied=false){
 onAuthStateChanged(auth, async user=>{
   if(user){
     try{
-      const snap=await get(allowedRef);const al=snap.val();
-      const list=al?Object.values(al).map(e=>e.toLowerCase().trim()):[];
-      if(!list.includes(user.email.toLowerCase())){await signOut(auth);showLogin(true);return;}
-    }catch(e){await signOut(auth);showLogin(true);return;}
+      const snap=await get(allowedRef);
+      const al=snap.val();
+      if(al){
+        const list=Object.values(al).map(e=>e.toLowerCase().trim());
+        if(!list.includes(user.email.toLowerCase())){
+          await signOut(auth);showLogin(true);return;
+        }
+      }
+      // allowedEmailsが読めない場合（ルール設定前等）はそのまま通す
+    }catch(e){
+      console.warn('allowedEmails読み込みエラー（続行）:',e.message);
+      // catchしてもサインアウトしない
+    }
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('mainApp').style.display='';
     document.getElementById('userArea').style.display='flex';
@@ -291,9 +300,15 @@ document.getElementById('lRegBtn').addEventListener('click',async()=>{
   if(!name||!email||!pass){err.textContent='すべて入力してください';return;}
   btn.disabled=true;btn.textContent='確認中...';
   try{
-    const snap=await get(allowedRef);const al=snap.val();
-    const list=al?Object.values(al).map(e=>e.toLowerCase().trim()):[];
-    if(!list.includes(email.toLowerCase())){err.textContent='このメールアドレスは登録が許可されていません。';btn.disabled=false;btn.textContent='アカウントを作成';return;}
+    let permitted=true;
+    try{
+      const snap=await get(allowedRef);const al=snap.val();
+      if(al){
+        const list=Object.values(al).map(e=>e.toLowerCase().trim());
+        if(!list.includes(email.toLowerCase()))permitted=false;
+      }
+    }catch(re){console.warn('allowedEmails確認エラー:',re.message);}
+    if(!permitted){err.textContent='このメールアドレスは登録が許可されていません。管理者にお問い合わせください。';btn.disabled=false;btn.textContent='アカウントを作成';return;}
     btn.textContent='作成中...';
     const cred=await createUserWithEmailAndPassword(auth,email,pass);
     await updateProfile(cred.user,{displayName:name});
