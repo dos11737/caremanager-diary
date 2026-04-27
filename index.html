@@ -131,6 +131,62 @@ textarea{min-height:52px;resize:vertical}
 .logout-btn{background:none;border:none;cursor:pointer;font-size:11px;color:#1a73e8;padding:0;text-decoration:underline}
 /* パスワードリセット */
 .reset-link{display:block;text-align:right;font-size:11px;color:#1a73e8;cursor:pointer;margin-top:3px;text-decoration:underline}
+
+/* ══ 書類チェックリスト ══ */
+.cl-legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:11px;color:#666;padding:6px 0 10px}
+.cl-leg-item{display:flex;align-items:center;gap:4px}
+.leg-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:#1a73e8}
+.dot-auto{background:#93c5fd}
+.dot-empty{background:#f0f0f0;border:1px solid #ddd}
+.cl-ctrl{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.cl-ctrl select{padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;color:#222;font-family:inherit}
+.cl-ctrl label{font-size:12px;color:#666}
+.cl-ebtn{padding:6px 12px;border:1px solid #1d6f42;color:#1d6f42;border-radius:6px;cursor:pointer;font-size:12px;background:#fff;font-weight:500;margin-left:auto}
+.cl-ebtn:hover{background:#e8f5e9}
+.cl-main{display:flex;min-height:400px;border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-bottom:10px}
+.cl-input-panel{width:300px;min-width:240px;background:#fff;border-right:1px solid #e5e5e5;padding:12px;overflow-y:auto;flex-shrink:0}
+.cl-ip-hd{font-size:12px;font-weight:700;color:#555;margin-bottom:10px}
+.cl-client-sel{margin-bottom:12px}
+.cl-client-sel label{font-size:11px;color:#888;display:block;margin-bottom:3px}
+.cl-client-sel select{width:100%;padding:7px 9px;border:1px solid #ccc;border-radius:7px;font-size:13px;background:#fff;color:#222}
+.cl-form-sec{background:#f8f9fb;border-radius:8px;padding:10px;margin-bottom:10px;border:1px solid #e8eaed}
+.cl-fs-title{font-size:10px;font-weight:700;color:#888;margin-bottom:8px;letter-spacing:0.06em;text-transform:uppercase}
+.cl-check-row{display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-bottom:1px solid #f0f0f0;flex-wrap:wrap}
+.cl-check-row:last-child{border-bottom:none}
+.cl-check-row input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;margin-top:1px;accent-color:#1a73e8}
+.cl-chk-label{font-size:12px;color:#333;flex:1}
+.cl-auto-badge{font-size:10px;color:#1a73e8;background:#dbeafe;border-radius:10px;padding:1px 6px;white-space:nowrap;flex-shrink:0}
+.cl-period-wrap{width:100%;margin-top:6px;background:#e8f0fe;border-radius:6px;padding:8px 10px;border:1px solid #c5ddf9}
+.cl-period-wrap .pw-label{font-size:10px;color:#1565c0;font-weight:700;margin-bottom:4px}
+.cl-period-inp{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.cl-period-inp input[type=date]{padding:4px 5px;border:1px solid #90caf9;border-radius:5px;font-size:11px;background:#fff;color:#222;font-family:inherit}
+.cl-period-inp span{font-size:11px;color:#555}
+.cl-jittai-wrap{width:100%;margin-top:6px;background:#fffbeb;border-radius:6px;padding:8px 10px;border:1px solid #fde68a}
+.cl-jittai-wrap .jw-label{font-size:10px;color:#92400e;font-weight:700;margin-bottom:5px}
+.cl-j-entry{display:flex;align-items:center;gap:5px;margin-bottom:4px}
+.cl-j-entry input[type=date]{padding:3px 5px;border:1px solid #fbbf24;border-radius:5px;font-size:11px;font-family:inherit;background:#fff;flex:1}
+.cl-j-entry .cl-jdel{background:none;border:none;cursor:pointer;color:#bbb;font-size:15px;padding:0;line-height:1;flex-shrink:0}
+.cl-j-entry .cl-jdel:hover{color:#e53935}
+.cl-add-j{font-size:11px;color:#92400e;background:none;border:1px dashed #fbbf24;border-radius:5px;padding:3px 8px;cursor:pointer;width:100%;margin-top:2px}
+.cl-add-j:hover{background:#fef3c7}
+.cl-grid-panel{flex:1;overflow-x:auto;padding:12px;min-width:0}
+.cl-grid-title{font-size:12px;font-weight:700;color:#555;margin-bottom:8px}
+.cl-table{border-collapse:collapse;font-size:11px;white-space:nowrap}
+.cl-table th,.cl-table td{border:1px solid #e0e0e0;padding:4px 6px;text-align:center}
+.cl-table th{background:#f5f5f5;font-weight:600;color:#555}
+.cl-table th.cl-sticky{position:sticky;left:0;z-index:3;text-align:left;min-width:80px}
+.cl-table td.cl-sticky{position:sticky;left:0;z-index:1;background:#fff;text-align:left;cursor:pointer;color:#1a73e8;font-weight:500}
+.cl-table td.cl-sticky:hover{text-decoration:underline}
+.cl-dot{width:13px;height:13px;border-radius:50%;display:inline-block;vertical-align:middle}
+.cl-cur-m{outline:2px solid #1a73e8}
+.cl-unc-panel{background:#f8f9fb;border-radius:8px;padding:10px;border:1px solid #e8eaed}
+.cl-unc-title{font-size:12px;font-weight:700;color:#555;margin-bottom:6px}
+.cl-unc-list{display:flex;flex-wrap:wrap;gap:5px}
+.cl-unc-chip{font-size:11px;padding:3px 10px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:12px;cursor:pointer}
+.cl-unc-chip:hover{background:#ffe0b2}
+.cl-unc-ok{font-size:12px;color:#2e7d32;padding:4px 0}
+@media(max-width:640px){.cl-main{flex-direction:column}.cl-input-panel{width:100%;border-right:none;border-bottom:1px solid #e5e5e5}}
 </style>
 </head>
 <body>
@@ -192,7 +248,7 @@ textarea{min-height:52px;resize:vertical}
     <div class="nav-tab" data-p="pAll">全員記録</div>
     <div class="nav-tab" data-p="pStats">集計・印刷</div>
     <div class="nav-tab" data-p="pSettings">設定</div>
-    <a href="checklist.html" class="nav-tab" style="text-decoration:none;color:inherit;flex-shrink:0;white-space:nowrap">📋 書類</a>
+    <div class="nav-tab" data-p="pChecklist">📋 書類</div>
   </div>
 
   <div class="page active" id="pInput">
@@ -302,6 +358,42 @@ textarea{min-height:52px;resize:vertical}
   </div>
 </div>
 
+  <!-- ══ 書類チェックリストページ ══ -->
+  <div class="page" id="pChecklist">
+    <div class="cl-ctrl">
+      <label>年度</label>
+      <select id="clYSel"></select>
+      <label style="margin-left:6px">表示月</label>
+      <select id="clMSel"></select>
+      <button class="cl-ebtn" id="clExcelBtn">Excel出力</button>
+    </div>
+    <div class="cl-legend">
+      <span style="font-weight:600;color:#555">凡例</span>
+      <div class="cl-leg-item"><div class="leg-dot dot-ok"></div>チェック済</div>
+      <div class="cl-leg-item"><div class="leg-dot dot-auto"></div>自動（期間内）</div>
+      <div class="cl-leg-item"><div class="leg-dot dot-empty"></div>未チェック</div>
+    </div>
+    <div class="cl-main">
+      <div class="cl-input-panel">
+        <div class="cl-ip-hd">📝 入力</div>
+        <div class="cl-client-sel">
+          <label>利用者</label>
+          <select id="clClientSel"><option value="">── 選択してください ──</option></select>
+        </div>
+        <div id="clInputForm"><div style="font-size:12px;color:#aaa;padding:16px 0;text-align:center">利用者を選択してください</div></div>
+      </div>
+      <div class="cl-grid-panel">
+        <div class="cl-grid-title" id="clGridTitle">年度チェック一覧</div>
+        <div id="clGridWrap"></div>
+      </div>
+    </div>
+    <div class="cl-unc-panel">
+      <div class="cl-unc-title" id="clUncTitle">当月 未チェック利用者</div>
+      <div class="cl-unc-list" id="clUncList"></div>
+    </div>
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
 import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-database.js";
@@ -1067,6 +1159,334 @@ function rTags(key,listId,inputId,btnId){
   };
 }
 
+
+// ════════════════════════════════════════════════
+// 書類チェックリスト機能
+// ════════════════════════════════════════════════
+const CL_REF_PATH='diary/checklist2';
+const CL_FISCAL=[4,5,6,7,8,9,10,11,12,1,2,3];
+const CL_J_DOCS=[
+  {key:'jittai',    label:'実態把握票', hasJittai:true},
+  {key:'careplan',  label:'ケアプラン',  hasPeriod:true},
+  {key:'teikyohyo', label:'提供票'}
+];
+const CL_F_DOCS=[
+  {key:'careplan', label:'ケアプラン', hasPeriod:true},
+  {key:'riyohyo',  label:'利用票'}
+];
+
+let clData={};
+let clYear=clFY(), clMonth=new Date().getMonth()+1;
+let clSelCid=null, clSaveTimer=null, clRefListener=null;
+
+function clFY(){const d=new Date();return d.getMonth()>=3?d.getFullYear():d.getFullYear()-1;}
+
+function clDoSave(){
+  clearTimeout(clSaveTimer);
+  clSaveTimer=setTimeout(()=>{
+    set(ref(db,CL_REF_PATH),clData||{}).catch(e=>console.error('CL保存エラー:',e));
+  },700);
+}
+
+// FirebaseのDB参照（業務日誌のdbを流用）
+function clStartListener(){
+  if(clRefListener)return;
+  clRefListener=true;
+  onValue(ref(db,CL_REF_PATH),snap=>{
+    clData=snap.val()||{};
+    clRenderAll();
+  });
+}
+
+function clInitSelectors(){
+  const yEl=document.getElementById('clYSel');
+  const mEl=document.getElementById('clMSel');
+  if(!yEl||!mEl)return;
+  const ny=clFY();
+  yEl.innerHTML='';
+  for(let y=ny-2;y<=ny+1;y++){
+    const o=document.createElement('option');
+    o.value=y;o.textContent=y+'年度 ('+y+'/4〜'+(y+1)+'/3)';
+    if(y===clYear)o.selected=true;
+    yEl.appendChild(o);
+  }
+  mEl.innerHTML=CL_FISCAL.map(m=>`<option value="${m}"${m===clMonth?' selected':''}>${m}月</option>`).join('');
+  yEl.addEventListener('change',()=>{clYear=+yEl.value;clRenderGrid();clRenderUnchecked();});
+  mEl.addEventListener('change',()=>{clMonth=+mEl.value;clRenderInputForm();clRenderGrid();clRenderUnchecked();});
+}
+
+function clMyCls(){return S.clients.filter(c=>!c.inactive&&c.cmIdx===S.curCM);}
+
+function clRenderClientSel(){
+  const sel=document.getElementById('clClientSel');
+  if(!sel)return;
+  const prev=sel.value;
+  const list=clMyCls();
+  sel.innerHTML='<option value="">── 選択してください ──</option>'+list.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  if(prev&&list.find(c=>String(c.id)===prev))sel.value=prev;
+  else if(!list.find(c=>String(c.id)===clSelCid))clSelCid=null;
+}
+
+document.addEventListener('change',function(e){
+  if(e.target.id==='clClientSel'){clSelCid=e.target.value||null;clRenderInputForm();}
+});
+
+// データアクセサ
+function clCd(cid){if(!clData[cid])clData[cid]={};return clData[cid];}
+function clGetChk(cid,type,key,m,y){return !!(clCd(cid)[type+'_'+key+'_'+y+'_'+m]);}
+function clSetChk(cid,type,key,m,y,v){clCd(cid)[type+'_'+key+'_'+y+'_'+m]=v;clDoSave();}
+function clGetPeriod(cid,pt){return clCd(cid)['period_'+pt]||{s:'',e:''};}
+function clSetPeriod(cid,pt,s,e){clCd(cid)['period_'+pt]={s,e};clDoSave();}
+function clGetJDates(cid){return clCd(cid).jittaiDates||[];}
+function clSetJDates(cid,arr){clCd(cid).jittaiDates=arr;clDoSave();}
+
+function clInPeriod(cid,pt,y,m){
+  const p=clGetPeriod(cid,pt);if(!p.s||!p.e)return false;
+  const ym=y*100+m;
+  const ps=parseInt(p.s.replace(/-/g,'').slice(0,6));
+  const pe=parseInt(p.e.replace(/-/g,'').slice(0,6));
+  return ym>=ps&&ym<=pe;
+}
+function clInJittai(cid,y,m){
+  const dates=clGetJDates(cid).filter(d=>d.date).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!dates.length)return false;
+  const ym=y*100+m;
+  for(let i=0;i<dates.length;i++){
+    const s=parseInt(dates[i].date.replace(/-/g,'').slice(0,6));
+    const e=i+1<dates.length?parseInt(dates[i+1].date.replace(/-/g,'').slice(0,6)):999999;
+    if(ym>=s&&ym<e)return true;
+  }
+  return false;
+}
+function clFYOf(m,baseY){return m>=4?baseY:baseY+1;}
+function clUid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+function clRenderInputForm(){
+  const el=document.getElementById('clInputForm');
+  if(!el)return;
+  if(!clSelCid){el.innerHTML='<div style="font-size:12px;color:#aaa;padding:16px 0;text-align:center">利用者を選択してください</div>';return;}
+  const cid=clSelCid;const y=clYear;const m=clMonth;
+  let h='';
+
+  h+=`<div class="cl-form-sec"><div class="cl-fs-title">事業所向け</div>`;
+  for(const doc of CL_J_DOCS){
+    const autoJ=doc.hasJittai&&clInJittai(cid,y,m);
+    const autoCp=doc.hasPeriod&&clInPeriod(cid,'j',y,m);
+    const isAuto=autoJ||autoCp;
+    const chk=isAuto||clGetChk(cid,'j',doc.key,m,y);
+    h+=`<div class="cl-check-row">
+      <input type="checkbox" ${chk?'checked':''} ${isAuto?'disabled':''} data-clt="j" data-clk="${doc.key}" data-clm="${m}" data-cly="${y}" data-clcid="${cid}">
+      <span class="cl-chk-label">${doc.label}</span>
+      ${isAuto?'<span class="cl-auto-badge">自動</span>':''}
+    </div>`;
+    if(doc.hasJittai){
+      const dates=clGetJDates(cid);
+      h+=`<div class="cl-jittai-wrap">
+        <div class="jw-label">📅 実態把握票 作成日</div>
+        ${dates.map(d=>`<div class="cl-j-entry">
+          <input type="date" class="cl-jdate" data-clcid="${cid}" data-cljid="${d.id}" value="${d.date||''}">
+          <button class="cl-jdel" data-clcid="${cid}" data-cljid="${d.id}">×</button>
+        </div>`).join('')}
+        <button class="cl-add-j" data-clcid="${cid}">＋ 作成日を追加</button>
+      </div>`;
+    }
+    if(doc.hasPeriod){
+      const p=clGetPeriod(cid,'j');
+      h+=`<div class="cl-period-wrap">
+        <div class="pw-label">📆 ケアプラン有効期間（事業所）</div>
+        <div class="cl-period-inp">
+          <input type="date" class="cl-cps" data-clcid="${cid}" data-clpt="j" value="${p.s||''}">
+          <span>〜</span>
+          <input type="date" class="cl-cpe" data-clcid="${cid}" data-clpt="j" value="${p.e||''}">
+        </div>
+      </div>`;
+    }
+  }
+  h+=`</div>`;
+
+  h+=`<div class="cl-form-sec"><div class="cl-fs-title">利用者・家族向け</div>`;
+  for(const doc of CL_F_DOCS){
+    const isAuto=doc.hasPeriod&&clInPeriod(cid,'f',y,m);
+    const chk=isAuto||clGetChk(cid,'f',doc.key,m,y);
+    h+=`<div class="cl-check-row">
+      <input type="checkbox" ${chk?'checked':''} ${isAuto?'disabled':''} data-clt="f" data-clk="${doc.key}" data-clm="${m}" data-cly="${y}" data-clcid="${cid}">
+      <span class="cl-chk-label">${doc.label}</span>
+      ${isAuto?'<span class="cl-auto-badge">自動</span>':''}
+    </div>`;
+    if(doc.hasPeriod){
+      const p=clGetPeriod(cid,'f');
+      h+=`<div class="cl-period-wrap">
+        <div class="pw-label">📆 ケアプラン有効期間（利用者）</div>
+        <div class="cl-period-inp">
+          <input type="date" class="cl-cps" data-clcid="${cid}" data-clpt="f" value="${p.s||''}">
+          <span>〜</span>
+          <input type="date" class="cl-cpe" data-clcid="${cid}" data-clpt="f" value="${p.e||''}">
+        </div>
+      </div>`;
+    }
+  }
+  h+=`</div>`;
+  el.innerHTML=h;
+
+  el.querySelectorAll('input[type=checkbox][data-clk]').forEach(cb=>{
+    cb.addEventListener('change',function(){
+      clSetChk(this.dataset.clcid,this.dataset.clt,this.dataset.clk,+this.dataset.clm,+this.dataset.cly,this.checked);
+      clRenderGrid();clRenderUnchecked();
+    });
+  });
+  el.querySelectorAll('.cl-cps,.cl-cpe').forEach(inp=>{
+    inp.addEventListener('change',function(){
+      const cid=this.dataset.clcid;const pt=this.dataset.clpt;
+      const wrap=this.closest('.cl-period-wrap');
+      clSetPeriod(cid,pt,wrap.querySelector('.cl-cps').value,wrap.querySelector('.cl-cpe').value);
+      clRenderInputForm();clRenderGrid();clRenderUnchecked();
+    });
+  });
+  el.querySelectorAll('.cl-jdate').forEach(inp=>{
+    inp.addEventListener('change',function(){
+      const dates=clGetJDates(this.dataset.clcid);
+      const entry=dates.find(d=>d.id===this.dataset.cljid);
+      if(entry)entry.date=this.value;
+      clSetJDates(this.dataset.clcid,dates);
+      clRenderInputForm();clRenderGrid();clRenderUnchecked();
+    });
+  });
+  el.querySelectorAll('.cl-jdel').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      clSetJDates(this.dataset.clcid,clGetJDates(this.dataset.clcid).filter(d=>d.id!==this.dataset.cljid));
+      clRenderInputForm();clRenderGrid();clRenderUnchecked();
+    });
+  });
+  el.querySelectorAll('.cl-add-j').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      const dates=clGetJDates(this.dataset.clcid);
+      dates.push({id:clUid(),date:''});
+      clSetJDates(this.dataset.clcid,dates);clRenderInputForm();
+    });
+  });
+}
+
+function clRenderGrid(){
+  const el=document.getElementById('clGridWrap');
+  if(!el)return;
+  const list=clMyCls();const y=clYear;
+  const titleEl=document.getElementById('clGridTitle');
+  if(titleEl)titleEl.textContent=y+'年度（'+y+'/4〜'+(y+1)+'/3） チェック一覧';
+  if(!list.length){el.innerHTML='<div style="padding:24px;text-align:center;color:#aaa;font-size:13px">担当利用者が登録されていません</div>';return;}
+  const allDocs=[...CL_J_DOCS.map(d=>({...d,type:'j'})),...CL_F_DOCS.map(d=>({...d,type:'f'}))];
+  let h=`<div style="overflow-x:auto"><table class="cl-table">
+    <thead>
+      <tr>
+        <th class="cl-sticky" rowspan="3">利用者</th>
+        <th colspan="${CL_J_DOCS.length*12}" style="background:#e8f0fe;color:#1a73e8">事業所向け</th>
+        <th colspan="${CL_F_DOCS.length*12}" style="background:#e8f5e9;color:#0f9d58">利用者・家族向け</th>
+      </tr>
+      <tr>
+        ${CL_J_DOCS.map(d=>`<th colspan="12" style="background:#e8f0fe;color:#1a73e8;font-size:10px">${d.label}</th>`).join('')}
+        ${CL_F_DOCS.map(d=>`<th colspan="12" style="background:#e8f5e9;color:#0f9d58;font-size:10px">${d.label}</th>`).join('')}
+      </tr>
+      <tr>
+        ${allDocs.map(d=>CL_FISCAL.map(m=>{
+          const isCur=m===clMonth;
+          return`<th style="font-size:9px;padding:2px 1px;min-width:16px;${isCur?'background:#dbeafe;color:#1a73e8':''}">${m}</th>`;
+        }).join('')).join('')}
+      </tr>
+    </thead><tbody>`;
+
+  for(const c of list){
+    h+=`<tr><td class="cl-sticky" data-clcid="${c.id}">${c.name}</td>`;
+    for(const doc of allDocs){
+      for(const m of CL_FISCAL){
+        const fy2=clFYOf(m,y);
+        const autoJ=doc.hasJittai&&clInJittai(String(c.id),fy2,m);
+        const autoCp=doc.hasPeriod&&clInPeriod(String(c.id),doc.type,fy2,m);
+        const isAuto=autoJ||autoCp;
+        const chk=isAuto||clGetChk(String(c.id),doc.type,doc.key,m,fy2);
+        const isCur=m===clMonth;
+        const dotCls=chk?(isAuto?'dot-auto':'dot-ok'):'dot-empty';
+        h+=`<td style="padding:3px;${isCur?'background:#f0f7ff':''}"><div class="cl-dot ${dotCls}${isCur?' cl-cur-m':''}"></div></td>`;
+      }
+    }
+    h+=`</tr>`;
+  }
+  h+=`</tbody></table></div>`;
+  el.innerHTML=h;
+  el.querySelectorAll('.cl-sticky[data-clcid]').forEach(td=>{
+    td.addEventListener('click',()=>{
+      clSelCid=td.dataset.clcid;
+      const sel=document.getElementById('clClientSel');
+      if(sel)sel.value=clSelCid;
+      clRenderInputForm();
+      document.querySelector('.cl-input-panel')?.scrollIntoView({behavior:'smooth'});
+    });
+  });
+}
+
+function clRenderUnchecked(){
+  const el=document.getElementById('clUncList');
+  if(!el)return;
+  const titleEl=document.getElementById('clUncTitle');
+  const m=clMonth;const y=clYear;
+  if(titleEl)titleEl.textContent=y+'年'+m+'月　未チェック利用者';
+  const list=clMyCls();
+  const unc=list.filter(c=>{
+    const cid=String(c.id);
+    for(const doc of CL_J_DOCS){
+      if(!(doc.hasJittai&&clInJittai(cid,y,m))&&!(doc.hasPeriod&&clInPeriod(cid,'j',y,m))&&!clGetChk(cid,'j',doc.key,m,y))return true;
+    }
+    for(const doc of CL_F_DOCS){
+      if(!(doc.hasPeriod&&clInPeriod(cid,'f',y,m))&&!clGetChk(cid,'f',doc.key,m,y))return true;
+    }
+    return false;
+  });
+  if(!unc.length){el.innerHTML='<div class="cl-unc-ok">✅ 全員チェック済みです</div>';return;}
+  el.innerHTML=unc.map(c=>`<div class="cl-unc-chip" data-clcid="${c.id}">${c.name}</div>`).join('');
+  el.querySelectorAll('.cl-unc-chip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      clSelCid=chip.dataset.clcid;
+      const sel=document.getElementById('clClientSel');
+      if(sel)sel.value=clSelCid;
+      clRenderInputForm();
+      document.querySelector('.cl-input-panel')?.scrollIntoView({behavior:'smooth'});
+    });
+  });
+}
+
+function clRenderAll(){
+  clRenderClientSel();clRenderInputForm();clRenderGrid();clRenderUnchecked();
+}
+
+// Excel出力
+document.getElementById('clExcelBtn')?.addEventListener('click',()=>{
+  const list=clMyCls();const y=clYear;
+  if(!list.length){alert('担当利用者がいません');return;}
+  if(typeof XLSX==='undefined'){alert('Excel出力機能を使うにはページをリロードしてください');return;}
+  const wb=XLSX.utils.book_new();
+  function makeSheet(docs,ptype,sheetName){
+    const rows=[['利用者',...CL_FISCAL.map(m=>m+'月')]];
+    for(const doc of docs){
+      rows.push([`【${doc.label}】`,...CL_FISCAL.map(()=>'')]);
+      for(const c of list){
+        const cid=String(c.id);
+        const row=[c.name];
+        for(const m of CL_FISCAL){
+          const fy2=clFYOf(m,y);
+          const autoJ=doc.hasJittai&&clInJittai(cid,fy2,m);
+          const autoCp=doc.hasPeriod&&clInPeriod(cid,ptype,fy2,m);
+          row.push(autoJ||autoCp?'自動':clGetChk(cid,ptype,doc.key,m,fy2)?'✓':'');
+        }
+        rows.push(row);
+      }
+      rows.push([]);
+    }
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),sheetName);
+  }
+  makeSheet(CL_J_DOCS,'j','事業所向け');
+  makeSheet(CL_F_DOCS,'f','利用者・家族向け');
+  const cmName=S.cms[S.curCM]?.name||'';
+  XLSX.writeFile(wb,`書類チェック_${cmName}CM_${y}年度.xlsx`);
+});
+
 document.querySelectorAll('.nav-tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
@@ -1074,6 +1494,7 @@ document.querySelectorAll('.nav-tab').forEach(t=>t.addEventListener('click',()=>
   if(t.dataset.p==='pAll')rTL('allTL',null,filterAct);
   if(t.dataset.p==='pStats'){initMonthSel();rStats();}
   if(t.dataset.p==='pSettings')rSettings();
+  if(t.dataset.p==='pChecklist'){clStartListener();clInitSelectors();clRenderAll();}
 }));
 </script>
 </body>
