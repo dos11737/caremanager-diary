@@ -1269,7 +1269,12 @@ function clGPs(id,pt){
   }
   return d['periods_'+pt]||[];
 }
-function clSPs(id,pt,a){clD(id)['periods_'+pt]=a;clSv();}
+function clSPs(id,pt,a){
+  clD(id)['periods_'+pt]=a;
+  // 事業所向けケアプランを利用者・家族向けに自動同期
+  if(pt==='j'){clD(id)['periods_f']=JSON.parse(JSON.stringify(a));}
+  clSv();
+}
 function clAddP(id,pt){const a=clGPs(id,pt);a.push({id:clUID(),s:'',e:''});clSPs(id,pt,a);}
 function clDelP(id,pt,pid){clSPs(id,pt,clGPs(id,pt).filter(p=>p.id!==pid));}
 function clUpdP(id,pt,pid,s,e){const a=clGPs(id,pt);const p=a.find(x=>x.id===pid);if(p){p.s=s;p.e=e;}clSPs(id,pt,a);}
@@ -1389,7 +1394,9 @@ function clRI(){
       </div>`;
     }
   }
-  h+=`</div><div class="cl-fsec"><div class="cl-fst">利用者・家族向け</div>`;
+  // 利用者・家族向けは事業所向けと同期（表示のみ）
+  h+=`</div><div class="cl-fsec"><div class="cl-fst">利用者・家族向け</div>
+    <div style="font-size:11px;color:#888;margin-bottom:8px">※ ケアプラン期間は事業所向けと自動同期されます</div>`;
   for(const doc of CL_FD){
     const au=doc.hasP&&clIP(id,'f',y,m);
     const ck=au||clGC(id,'f',doc.key,m,y);
@@ -1401,15 +1408,19 @@ function clRI(){
     </div>`;
     if(doc.hasP){
       const ps=clGPs(id,'f');
-      h+=`<div class="cl-pb"><div class="cl-plbl">📆 ケアプラン有効期間（利用者）</div>
-        <div class="cl-plist">${ps.map(p=>`<div class="cl-prow">
-          <input type="date" class="cl-ps" data-id="${id}" data-pt="f" data-pid="${p.id}" value="${p.s||''}">
-          <span>〜</span>
-          <input type="date" class="cl-pe" data-id="${id}" data-pt="f" data-pid="${p.id}" value="${p.e||''}">
-          <button class="cl-pdel" data-id="${id}" data-pt="f" data-pid="${p.id}">×</button>
-        </div>`).join('')}</div>
-        <button class="cl-addp" data-id="${id}" data-pt="f">＋ 期間を追加</button>
-      </div>`;
+      if(ps.length){
+        h+=`<div class="cl-pb"><div class="cl-plbl">📆 ケアプラン有効期間（利用者・同期済）</div>
+          <div class="cl-plist">${ps.map(p=>`<div class="cl-prow" style="opacity:0.8">
+            <input type="date" value="${p.s||''}" disabled style="border-color:#90caf9;background:#f0f4ff;color:#555;font-family:inherit;padding:3px 5px;border-radius:5px;font-size:11px">
+            <span>〜</span>
+            <input type="date" value="${p.e||''}" disabled style="border-color:#90caf9;background:#f0f4ff;color:#555;font-family:inherit;padding:3px 5px;border-radius:5px;font-size:11px">
+          </div>`).join('')}</div>
+        </div>`;
+      } else {
+        h+=`<div class="cl-pb" style="opacity:0.6"><div class="cl-plbl">📆 ケアプラン有効期間（利用者・同期済）</div>
+          <div style="font-size:11px;color:#999;padding:4px 0">事業所向けで期間を設定すると自動反映されます</div>
+        </div>`;
+      }
     }
   }
   h+=`</div>`;
