@@ -148,10 +148,6 @@ textarea{min-height:52px;resize:vertical}
 .cl-topbar{display:flex;flex-direction:column;gap:7px;padding:10px 12px;background:#f8f9fb;border-bottom:1px solid #e5e5e5}
 .cl-topbar label{font-size:11px;color:#888;display:block;margin-bottom:2px}
 .cl-topbar select{width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;color:#222;font-family:inherit}
-.cl-vbtns{display:flex;gap:4px;width:100%}
-.cl-vbtns .cl-vbtn{flex:1;text-align:center}
-.cl-vbtn{padding:5px 12px;border:1px solid #ccc;border-radius:6px;cursor:pointer;font-size:12px;background:#fff;color:#555;white-space:nowrap}
-.cl-vbtn.active{background:#1a73e8;color:#fff;border-color:#1a73e8;font-weight:600}
 .cl-xbtn{padding:6px 12px;border:1px solid #1d6f42;color:#1d6f42;border-radius:6px;cursor:pointer;font-size:12px;background:#fff;font-weight:500;width:100%}
 .cl-xbtn:hover{background:#e8f5e9}
 .cl-leg-row{display:flex;gap:10px;align-items:center;font-size:11px;color:#666;padding:5px 12px;background:#fafafa;border-bottom:1px solid #eee;flex-wrap:wrap}
@@ -192,13 +188,7 @@ textarea{min-height:52px;resize:vertical}
 /* 右パネル */
 .cl-right{flex:1;overflow-y:auto;padding:12px;background:#fff;min-width:0}
 .cl-rhd{font-size:12px;font-weight:700;color:#555;margin-bottom:8px}
-.cl-mt{width:100%;border-collapse:collapse;font-size:12px}
 .cl-mt th,.cl-mt td{border:1px solid #e0e0e0;padding:6px 8px;text-align:center}
-.cl-mt th{background:#f5f5f5;font-weight:600;color:#555}
-.cl-mt th.cl-nc{text-align:left;min-width:90px}
-.cl-mt td.cl-nc{text-align:left;cursor:pointer;color:#1a73e8;font-weight:500}
-.cl-mt td.cl-nc:hover{text-decoration:underline}
-.cl-mt td.cl-nc.sel{background:#e8f0fe}
 .dok{color:#1a73e8;font-size:14px}
 .dau{color:#93c5fd;font-size:14px}
 .dem{color:#ddd;font-size:14px}
@@ -400,9 +390,8 @@ textarea{min-height:52px;resize:vertical}
       <span class="cl-sync-badge" id="clSyncBadge">●同期済</span>
       <button class="cl-back-btn" id="clBackBtn">← 業務日誌に戻る</button>
     </div>
-    <!-- 当月ビュー -->
-    <div class="cl-mv" id="clMV">
-      <!-- 左：コントロール＋入力 -->
+    <!-- コントロールバー（左サイドバー） -->
+    <div class="cl-mv">
       <div class="cl-left">
         <div class="cl-topbar">
           <div>
@@ -412,10 +401,6 @@ textarea{min-height:52px;resize:vertical}
           <div>
             <label>表示月</label>
             <select id="clMSel"></select>
-          </div>
-          <div class="cl-vbtns">
-            <div class="cl-vbtn active" id="clBtnM">当月チェック</div>
-            <div class="cl-vbtn" id="clBtnY">年度一覧</div>
           </div>
           <button class="cl-xbtn" id="clXBtn">Excel出力</button>
         </div>
@@ -428,20 +413,17 @@ textarea{min-height:52px;resize:vertical}
           <div id="clIF"><div style="font-size:12px;color:#aaa;padding:12px 0;text-align:center">利用者を選択してください</div></div>
         </div>
       </div>
-      <!-- 右：チェック状況（当月/年度を切り替え） -->
+      <!-- 右：年度チェック一覧 -->
       <div class="cl-right">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
-          <div class="cl-rhd" id="clMTitle" style="margin-bottom:0">当月チェック状況</div>
+          <div class="cl-rhd" id="clYTitle" style="margin-bottom:0">年度チェック一覧</div>
           <div class="cl-leg-row" style="padding:0;background:none;border:none;flex:1;justify-content:flex-end">
             <div class="cl-leg"><span class="dok">●</span>済</div>
             <div class="cl-leg"><span class="dau">●</span>自動</div>
             <div class="cl-leg"><span class="dem">●</span>未</div>
           </div>
         </div>
-        <!-- 当月テーブル -->
-        <div id="clMTbl"></div>
-        <!-- 年度テーブル -->
-        <div id="clYTbl" style="display:none"></div>
+        <div id="clYTbl"></div>
       </div>
     </div>
     <!-- 未チェックバー -->
@@ -1250,7 +1232,7 @@ const CL_FD=[
 const CL_AD=[...CL_JD.map(d=>({...d,t:'j'})),...CL_FD.map(d=>({...d,t:'f'}))];
 
 let clData={},clY=clFY0(),clM=new Date().getMonth()+1;
-let clCid=null,clTm=null,clOK=false,clView='m';
+let clCid=null,clTm=null,clOK=false;
 
 function clFY0(){const d=new Date();return d.getMonth()>=3?d.getFullYear():d.getFullYear()-1;}
 function clUID(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
@@ -1319,25 +1301,7 @@ function clInit(){
     mE.innerHTML=CL_F.map(m=>`<option value="${m}"${m===clM?' selected':''}>${m}月</option>`).join('');
     yE.addEventListener('change',()=>{clY=+yE.value;clRA();});
     mE.addEventListener('change',()=>{clM=+mE.value;clRA();});
-    // ビュー切替
-    document.getElementById('clBtnM').addEventListener('click',()=>{
-      clView='m';
-      document.getElementById('clBtnM').classList.add('active');
-      document.getElementById('clBtnY').classList.remove('active');
-      document.getElementById('clMTbl').style.display='';
-      document.getElementById('clYTbl').style.display='none';
-      document.getElementById('clMTitle').textContent=clY+'年'+clM+'月 チェック状況';
-      clRA();
-    });
-    document.getElementById('clBtnY').addEventListener('click',()=>{
-      clView='y';
-      document.getElementById('clBtnY').classList.add('active');
-      document.getElementById('clBtnM').classList.remove('active');
-      document.getElementById('clMTbl').style.display='none';
-      document.getElementById('clYTbl').style.display='';
-      document.getElementById('clMTitle').textContent=clY+'年度（'+clY+'/4〜'+(clY+1)+'/3）チェック一覧';
-      clRA();
-    });
+
     document.getElementById('clCS').addEventListener('change',function(){clCid=this.value||null;clRI();});
     document.getElementById('clXBtn').addEventListener('click',clXL);
   }
@@ -1452,47 +1416,9 @@ function clRI(){
   }));
 }
 
-function clRM(){
-  const el=document.getElementById('clMTbl');const tEl=document.getElementById('clMTitle');
-  if(!el)return;
-  el.style.display='';
-  const list=clMyC();const y=clY;const m=clM;
-  if(tEl)tEl.textContent=y+'年'+m+'月 チェック状況';
-  if(!list.length){el.innerHTML='<div style="padding:20px;text-align:center;color:#aaa">担当利用者が登録されていません</div>';return;}
-  let h=`<table class="cl-mt"><thead>
-    <tr><th class="cl-nc" rowspan="2">利用者</th>
-      <th colspan="${CL_JD.length}" style="background:#e8f0fe;color:#1a73e8">事業所向け</th>
-      <th colspan="${CL_FD.length}" style="background:#e8f5e9;color:#0f9d58">利用者・家族向け</th>
-    </tr><tr>
-      ${CL_JD.map(d=>`<th style="background:#e8f0fe;color:#1a73e8;font-size:11px">${d.label}</th>`).join('')}
-      ${CL_FD.map(d=>`<th style="background:#e8f5e9;color:#0f9d58;font-size:11px">${d.label}</th>`).join('')}
-    </tr></thead><tbody>`;
-  for(const c of list){
-    const id=String(c.id);const sel=clCid===id;
-    h+=`<tr><td class="cl-nc${sel?' sel':''}" data-id="${id}">${c.name}</td>`;
-    for(const d of CL_JD){
-      const au=(d.hasJ&&clIJ(id,y,m))||(d.hasP&&clIP(id,'j',y,m));
-      const ok=au||clGC(id,'j',d.key,m,y);
-      h+=`<td style="font-size:22px;line-height:1;padding:4px 8px"><span class="${ok?(au?'dau':'dok'):'dem'}">●</span></td>`;
-    }
-    for(const d of CL_FD){
-      const au=d.hasP&&clIP(id,'f',y,m);
-      const ok=au||clGC(id,'f',d.key,m,y);
-      h+=`<td style="font-size:22px;line-height:1;padding:4px 8px"><span class="${ok?(au?'dau':'dok'):'dem'}">●</span></td>`;
-    }
-    h+=`</tr>`;
-  }
-  h+=`</tbody></table>`;
-  el.innerHTML=h;
-  el.querySelectorAll('.cl-nc[data-id]').forEach(td=>td.addEventListener('click',()=>{
-    clCid=td.dataset.id;
-    const s=document.getElementById('clCS');if(s)s.value=clCid;
-    clRI();clRM();
-  }));
-}
 
 function clRY(){
-  const el=document.getElementById('clYTbl');const tEl=document.getElementById('clMTitle');
+  const el=document.getElementById('clYTbl');const tEl=document.getElementById('clYTitle');
   if(!el)return;
   el.style.display='';
   const list=clMyC();const y=clY;
@@ -1531,13 +1457,7 @@ function clRY(){
   el.querySelectorAll('.cl-ys[data-id]').forEach(td=>td.addEventListener('click',()=>{
     clCid=td.dataset.id;
     const s=document.getElementById('clCS');if(s)s.value=clCid;
-    clView='m';
-    document.getElementById('clBtnM').classList.add('active');
-    document.getElementById('clBtnY').classList.remove('active');
-    document.getElementById('clMTbl').style.display='';
-    document.getElementById('clYTbl').style.display='none';
-    document.getElementById('clMTitle').textContent=clY+'年'+clM+'月 チェック状況';
-    clRI();clRM();
+    clRI();clRY();
   }));
 }
 
@@ -1557,13 +1477,7 @@ function clRU(){
   el.querySelectorAll('.cl-uc').forEach(ch=>ch.addEventListener('click',()=>{
     clCid=ch.dataset.id;
     const s=document.getElementById('clCS');if(s)s.value=clCid;
-    clView='m';
-    document.getElementById('clBtnM').classList.add('active');
-    document.getElementById('clBtnY').classList.remove('active');
-    document.getElementById('clMTbl').style.display='';
-    document.getElementById('clYTbl').style.display='none';
-    document.getElementById('clMTitle').textContent=clY+'年'+clM+'月 チェック状況';
-    clRI();clRM();
+    clRI();clRY();
   }));
 }
 
@@ -1606,7 +1520,7 @@ function clRenderSysHeader(){
       S.curCM=+t.dataset.ci;
       clCid=null;
       const sel=document.getElementById('clCS');if(sel)sel.value='';
-      clRenderSysHeader();clRCS();clRI();clRM();clRY();clRU();
+      clRenderSysHeader();clRCS();clRI();clRY();clRU();
     }));
   }
   // 同期バッジ
@@ -1624,7 +1538,7 @@ function clRenderSysHeader(){
     });
   }
 }
-function clRA(){clRCS();clRI();clView==='m'?clRM():clRY();clRU();}
+function clRA(){clRCS();clRI();clRY();clRU();}
 
 </script>
 </body>
