@@ -211,12 +211,12 @@ textarea{min-height:52px;resize:vertical}
 /* 年度ビュー */
 .cl-yv{padding:12px;overflow-x:auto}
 .cl-yt{border-collapse:collapse;font-size:11px;white-space:nowrap}
-.cl-yt th,.cl-yt td{border:1px solid #e0e0e0;padding:3px 5px;text-align:center}
+.cl-yt th,.cl-yt td{border:1px solid #e0e0e0;padding:3px 4px;text-align:center}
 .cl-yt th{background:#f5f5f5;font-weight:600;color:#555}
 .cl-yt th.cl-ys{position:sticky;left:0;z-index:3;text-align:left;min-width:80px;background:#f5f5f5}
 .cl-yt td.cl-ys{position:sticky;left:0;z-index:1;background:#fff;text-align:left;cursor:pointer;color:#1a73e8;font-weight:500}
 .cl-yt td.cl-ys:hover{text-decoration:underline}
-.cl-yd{width:12px;height:12px;border-radius:50%;display:inline-block;vertical-align:middle}
+.cl-yd{width:16px;height:16px;border-radius:50%;display:inline-block;vertical-align:middle}
 .cl-yok{background:#1a73e8}.cl-yau{background:#93c5fd}.cl-yem{background:#f0f0f0;border:1px solid #ddd}
 .cl-ycm{outline:2px solid #1a73e8}
 @media(max-width:640px){.cl-mv{flex-direction:column}.cl-left{width:100%;border-right:none;border-bottom:1px solid #e5e5e5}}
@@ -1462,12 +1462,12 @@ function clRM(){
     for(const d of CL_JD){
       const au=(d.hasJ&&clIJ(id,y,m))||(d.hasP&&clIP(id,'j',y,m));
       const ok=au||clGC(id,'j',d.key,m,y);
-      h+=`<td><span class="${ok?(au?'dau':'dok'):'dem'}">●</span></td>`;
+      h+=`<td style="font-size:22px;line-height:1;padding:4px 8px"><span class="${ok?(au?'dau':'dok'):'dem'}">●</span></td>`;
     }
     for(const d of CL_FD){
       const au=d.hasP&&clIP(id,'f',y,m);
       const ok=au||clGC(id,'f',d.key,m,y);
-      h+=`<td><span class="${ok?(au?'dau':'dok'):'dem'}">●</span></td>`;
+      h+=`<td style="font-size:22px;line-height:1;padding:4px 8px"><span class="${ok?(au?'dau':'dok'):'dem'}">●</span></td>`;
     }
     h+=`</tr>`;
   }
