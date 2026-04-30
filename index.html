@@ -8,6 +8,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:#f5f5f5;color:#222}
 .app{max-width:680px;margin:0 auto;background:#fff;min-height:100vh}
+.app.cl-wide{max-width:100%;margin:0}
 .topbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #e5e5e5;flex-wrap:wrap;background:#fff;position:sticky;top:0;z-index:50}
 .topbar-title{font-size:14px;font-weight:600;color:#111;flex-shrink:0}
 .cm-scroller{display:flex;gap:5px;overflow-x:auto;flex:1;min-width:0;padding-bottom:2px}
@@ -134,20 +135,23 @@ textarea{min-height:52px;resize:vertical}
 
 
 /* ══ 書類チェックリスト ══ */
-#pChecklist{padding:0}
-.cl-topbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f8f9fb;border-bottom:1px solid #e5e5e5;flex-wrap:wrap}
-.cl-topbar label{font-size:12px;color:#666}
-.cl-topbar select{padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;color:#222;font-family:inherit}
-.cl-vbtns{display:flex;gap:4px;margin-left:auto}
+#pChecklist{padding:0;width:100%;min-height:0}
+#pChecklist.active{display:flex;flex-direction:column;height:calc(100vh - 90px);overflow:hidden}
+.cl-topbar{display:flex;flex-direction:column;gap:7px;padding:10px 12px;background:#f8f9fb;border-bottom:1px solid #e5e5e5}
+.cl-topbar label{font-size:11px;color:#888;display:block;margin-bottom:2px}
+.cl-topbar select{width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff;color:#222;font-family:inherit}
+.cl-vbtns{display:flex;gap:4px;width:100%}
+.cl-vbtns .cl-vbtn{flex:1;text-align:center}
 .cl-vbtn{padding:5px 12px;border:1px solid #ccc;border-radius:6px;cursor:pointer;font-size:12px;background:#fff;color:#555;white-space:nowrap}
 .cl-vbtn.active{background:#1a73e8;color:#fff;border-color:#1a73e8;font-weight:600}
-.cl-xbtn{padding:5px 12px;border:1px solid #1d6f42;color:#1d6f42;border-radius:6px;cursor:pointer;font-size:12px;background:#fff;font-weight:500}
+.cl-xbtn{padding:6px 12px;border:1px solid #1d6f42;color:#1d6f42;border-radius:6px;cursor:pointer;font-size:12px;background:#fff;font-weight:500;width:100%}
 .cl-xbtn:hover{background:#e8f5e9}
 .cl-leg-row{display:flex;gap:10px;align-items:center;font-size:11px;color:#666;padding:5px 12px;background:#fafafa;border-bottom:1px solid #eee;flex-wrap:wrap}
 .cl-leg{display:flex;align-items:center;gap:3px}
 /* 当月ビュー */
-.cl-mv{display:flex;min-height:calc(100vh - 220px)}
-.cl-left{width:300px;min-width:260px;border-right:1px solid #e5e5e5;background:#fff;overflow-y:auto;flex-shrink:0;padding:12px}
+.cl-mv{display:flex;flex:1;min-height:0}
+.cl-left{width:300px;min-width:260px;border-right:1px solid #e5e5e5;background:#fff;overflow-y:hidden;flex-shrink:0;padding:0;display:flex;flex-direction:column}
+.cl-left-body{padding:12px;flex:1;overflow-y:auto;min-height:0}
 .cl-lhd{font-size:12px;font-weight:700;color:#555;margin-bottom:8px}
 .cl-cswrap{margin-bottom:10px}
 .cl-cswrap label{font-size:11px;color:#888;display:block;margin-bottom:3px}
@@ -178,7 +182,7 @@ textarea{min-height:52px;resize:vertical}
 .cl-addj{font-size:11px;color:#92400e;background:none;border:1px dashed #fbbf24;border-radius:5px;padding:3px 8px;cursor:pointer;width:100%;margin-top:2px}
 .cl-addj:hover{background:#fef3c7}
 /* 右パネル */
-.cl-right{flex:1;overflow-y:auto;padding:12px;background:#fff}
+.cl-right{flex:1;overflow-y:auto;padding:12px;background:#fff;min-width:0}
 .cl-rhd{font-size:12px;font-weight:700;color:#555;margin-bottom:8px}
 .cl-mt{width:100%;border-collapse:collapse;font-size:12px}
 .cl-mt th,.cl-mt td{border:1px solid #e0e0e0;padding:6px 8px;text-align:center}
@@ -381,40 +385,49 @@ textarea{min-height:52px;resize:vertical}
 
   <!-- ══ 書類チェックリスト ══ -->
   <div class="page" id="pChecklist">
-    <div class="cl-topbar">
-      <label>年度</label><select id="clYSel"></select>
-      <label style="margin-left:6px">月</label><select id="clMSel"></select>
-      <div class="cl-vbtns">
-        <div class="cl-vbtn active" id="clBtnM">当月チェック</div>
-        <div class="cl-vbtn" id="clBtnY">年度一覧</div>
-      </div>
-      <button class="cl-xbtn" id="clXBtn">Excel出力</button>
-    </div>
-    <div class="cl-leg-row">
-      <strong style="color:#555">凡例</strong>
-      <div class="cl-leg"><span class="dok">●</span>チェック済</div>
-      <div class="cl-leg"><span class="dau">●</span>自動（期間内）</div>
-      <div class="cl-leg"><span class="dem">●</span>未チェック</div>
-    </div>
     <!-- 当月ビュー -->
     <div class="cl-mv" id="clMV">
+      <!-- 左：コントロール＋入力 -->
       <div class="cl-left">
-        <div class="cl-lhd">📝 入力</div>
-        <div class="cl-cswrap">
-          <label>利用者</label>
-          <select class="cl-csel" id="clCS"><option value="">── 選択してください ──</option></select>
+        <div class="cl-topbar">
+          <div>
+            <label>年度</label>
+            <select id="clYSel"></select>
+          </div>
+          <div>
+            <label>表示月</label>
+            <select id="clMSel"></select>
+          </div>
+          <div class="cl-vbtns">
+            <div class="cl-vbtn active" id="clBtnM">当月チェック</div>
+            <div class="cl-vbtn" id="clBtnY">年度一覧</div>
+          </div>
+          <button class="cl-xbtn" id="clXBtn">Excel出力</button>
         </div>
-        <div id="clIF"><div style="font-size:12px;color:#aaa;padding:12px 0;text-align:center">利用者を選択してください</div></div>
+        <div class="cl-left-body">
+          <div class="cl-lhd">📝 入力</div>
+          <div class="cl-cswrap">
+            <label>利用者</label>
+            <select class="cl-csel" id="clCS"><option value="">── 選択してください ──</option></select>
+          </div>
+          <div id="clIF"><div style="font-size:12px;color:#aaa;padding:12px 0;text-align:center">利用者を選択してください</div></div>
+        </div>
       </div>
+      <!-- 右：チェック状況（当月/年度を切り替え） -->
       <div class="cl-right">
-        <div class="cl-rhd" id="clMTitle">当月チェック状況</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+          <div class="cl-rhd" id="clMTitle" style="margin-bottom:0">当月チェック状況</div>
+          <div class="cl-leg-row" style="padding:0;background:none;border:none;flex:1;justify-content:flex-end">
+            <div class="cl-leg"><span class="dok">●</span>済</div>
+            <div class="cl-leg"><span class="dau">●</span>自動</div>
+            <div class="cl-leg"><span class="dem">●</span>未</div>
+          </div>
+        </div>
+        <!-- 当月テーブル -->
         <div id="clMTbl"></div>
+        <!-- 年度テーブル -->
+        <div id="clYTbl" style="display:none"></div>
       </div>
-    </div>
-    <!-- 年度ビュー -->
-    <div class="cl-yv" id="clYV" style="display:none">
-      <div class="cl-rhd" id="clYTitle">年度チェック一覧</div>
-      <div id="clYTbl"></div>
     </div>
     <!-- 未チェックバー -->
     <div class="cl-ub">
@@ -1199,7 +1212,12 @@ document.querySelectorAll('.nav-tab').forEach(t=>t.addEventListener('click',()=>
   if(t.dataset.p==='pAll')rTL('allTL',null,filterAct);
   if(t.dataset.p==='pStats'){initMonthSel();rStats();}
   if(t.dataset.p==='pSettings')rSettings();
-  if(t.dataset.p==='pChecklist')clInit();
+  if(t.dataset.p==='pChecklist'){
+    document.querySelector('.app').classList.add('cl-wide');
+    clInit();
+  } else {
+    document.querySelector('.app').classList.remove('cl-wide');
+  }
 }));
 
 // ═══ 書類チェックリスト ═══
@@ -1286,16 +1304,18 @@ function clInit(){
       clView='m';
       document.getElementById('clBtnM').classList.add('active');
       document.getElementById('clBtnY').classList.remove('active');
-      document.getElementById('clMV').style.display='';
-      document.getElementById('clYV').style.display='none';
+      document.getElementById('clMTbl').style.display='';
+      document.getElementById('clYTbl').style.display='none';
+      document.getElementById('clMTitle').textContent=clY+'年'+clM+'月 チェック状況';
       clRA();
     });
     document.getElementById('clBtnY').addEventListener('click',()=>{
       clView='y';
       document.getElementById('clBtnY').classList.add('active');
       document.getElementById('clBtnM').classList.remove('active');
-      document.getElementById('clMV').style.display='none';
-      document.getElementById('clYV').style.display='';
+      document.getElementById('clMTbl').style.display='none';
+      document.getElementById('clYTbl').style.display='';
+      document.getElementById('clMTitle').textContent=clY+'年度（'+clY+'/4〜'+(clY+1)+'/3）チェック一覧';
       clRA();
     });
     document.getElementById('clCS').addEventListener('change',function(){clCid=this.value||null;clRI();});
@@ -1408,6 +1428,7 @@ function clRI(){
 function clRM(){
   const el=document.getElementById('clMTbl');const tEl=document.getElementById('clMTitle');
   if(!el)return;
+  el.style.display='';
   const list=clMyC();const y=clY;const m=clM;
   if(tEl)tEl.textContent=y+'年'+m+'月 チェック状況';
   if(!list.length){el.innerHTML='<div style="padding:20px;text-align:center;color:#aaa">担当利用者が登録されていません</div>';return;}
@@ -1444,8 +1465,9 @@ function clRM(){
 }
 
 function clRY(){
-  const el=document.getElementById('clYTbl');const tEl=document.getElementById('clYTitle');
+  const el=document.getElementById('clYTbl');const tEl=document.getElementById('clMTitle');
   if(!el)return;
+  el.style.display='';
   const list=clMyC();const y=clY;
   if(tEl)tEl.textContent=y+'年度（'+y+'/4〜'+(y+1)+'/3）チェック一覧';
   if(!list.length){el.innerHTML='<div style="padding:20px;text-align:center;color:#aaa">担当利用者が登録されていません</div>';return;}
@@ -1485,8 +1507,9 @@ function clRY(){
     clView='m';
     document.getElementById('clBtnM').classList.add('active');
     document.getElementById('clBtnY').classList.remove('active');
-    document.getElementById('clMV').style.display='';
-    document.getElementById('clYV').style.display='none';
+    document.getElementById('clMTbl').style.display='';
+    document.getElementById('clYTbl').style.display='none';
+    document.getElementById('clMTitle').textContent=clY+'年'+clM+'月 チェック状況';
     clRI();clRM();
   }));
 }
@@ -1510,8 +1533,9 @@ function clRU(){
     clView='m';
     document.getElementById('clBtnM').classList.add('active');
     document.getElementById('clBtnY').classList.remove('active');
-    document.getElementById('clMV').style.display='';
-    document.getElementById('clYV').style.display='none';
+    document.getElementById('clMTbl').style.display='';
+    document.getElementById('clYTbl').style.display='none';
+    document.getElementById('clMTitle').textContent=clY+'年'+clM+'月 チェック状況';
     clRI();clRM();
   }));
 }
