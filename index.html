@@ -210,6 +210,27 @@ textarea{min-height:52px;resize:vertical}
 .cl-yok{background:#1a73e8}.cl-yau{background:#93c5fd}.cl-yem{background:#f0f0f0;border:1px solid #ddd}
 .cl-ycm{outline:2px solid #1a73e8}
 @media(max-width:640px){.cl-mv{flex-direction:column}.cl-left{width:100%;border-right:none;border-bottom:1px solid #e5e5e5}}
+
+/* ══ 出勤簿 ══ */
+.input-layout{display:flex;gap:0;min-height:0}
+.input-main{flex:1;padding:12px;min-width:0;border-right:1px solid #e5e5e5}
+.att-panel{width:260px;min-width:220px;flex-shrink:0;background:#fafafa;border-left:1px solid #e5e5e5;display:flex;flex-direction:column}
+.att-header{padding:10px 12px;background:#fff;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-shrink:0}
+.att-title{font-size:12px;font-weight:700;color:#555}
+.att-period{font-size:11px;color:#888}
+.att-export{padding:4px 10px;border:1px solid #1d6f42;color:#1d6f42;border-radius:5px;cursor:pointer;font-size:11px;background:#fff;white-space:nowrap}
+.att-export:hover{background:#e8f5e9}
+.att-body{flex:1;overflow-y:auto}
+.att-table{width:100%;border-collapse:collapse;font-size:12px}
+.att-table th{background:#f0f0f0;font-weight:600;color:#555;padding:4px 6px;text-align:center;border:1px solid #e0e0e0;position:sticky;top:0;z-index:1;font-size:11px}
+.att-table td{padding:4px 6px;border:1px solid #e8e8e8;text-align:center;font-size:11px}
+.att-table tr.weekend td{background:#f9f0ff}
+.att-table tr.holiday td{background:#fff0f0}
+.att-table tr.today-row td{background:#e8f0fe;font-weight:600}
+.att-check{width:14px;height:14px;accent-color:#1a73e8;cursor:pointer}
+.att-count{padding:8px 12px;background:#fff;border-top:1px solid #e5e5e5;font-size:11px;color:#555;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.att-count strong{color:#1a73e8;font-size:14px}
+@media(max-width:680px){.input-layout{flex-direction:column}.att-panel{width:100%;border-left:none;border-top:1px solid #e5e5e5}}
 </style>
 </head>
 <body>
@@ -275,34 +296,61 @@ textarea{min-height:52px;resize:vertical}
   </div>
 
   <div class="page active" id="pInput">
-    <div class="slabel">業務種別（複数可）</div>
-    <div class="btn-group" id="actBtns"></div>
-    <div class="row">
-      <label>利用者</label>
-      <div class="client-wrap">
-        <div class="client-display" id="cDisp"><span class="c-ph" id="cPh">選択してください（複数可）</span></div>
-        <div class="c-drop" id="cDrop">
-          <div class="c-search"><input type="text" id="cSearch" placeholder="氏名で検索..."></div>
-          <div id="cList"></div>
+    <div class="input-layout">
+      <!-- 左：出勤簿 -->
+      <div class="att-panel">
+        <div class="att-header">
+          <div style="flex:1;min-width:0">
+            <div class="att-title">📅 出勤簿</div>
+            <select id="attMonthSel" style="font-size:11px;color:#555;border:1px solid #ddd;border-radius:4px;padding:2px 4px;margin-top:3px;width:100%;background:#fff;font-family:inherit"></select>
+          </div>
+          <button class="att-export" id="attExportBtn">Excel</button>
+        </div>
+        <div class="att-body">
+          <table class="att-table">
+            <thead><tr>
+              <th>日</th><th>曜</th><th>出勤</th><th>時刻</th>
+            </tr></thead>
+            <tbody id="attBody"></tbody>
+          </table>
+        </div>
+        <div class="att-count">
+          <span>出勤日数</span>
+          <strong id="attCount">0</strong><span>日</span>
         </div>
       </div>
-    </div>
-    <div class="row">
-      <label>日付</label>
-      <input type="date" id="entryDate" style="flex:1;max-width:180px">
-    </div>
-    <div class="row">
-      <label>時刻</label>
-      <div class="time-range">
-        <input type="time" id="tFrom">
-        <span>〜</span>
-        <input type="time" id="tTo">
+      <!-- 右：業務入力 -->
+      <div class="input-main">
+        <div class="slabel">業務種別（複数可）</div>
+        <div class="btn-group" id="actBtns"></div>
+        <div class="row">
+          <label>利用者</label>
+          <div class="client-wrap">
+            <div class="client-display" id="cDisp"><span class="c-ph" id="cPh">選択してください（複数可）</span></div>
+            <div class="c-drop" id="cDrop">
+              <div class="c-search"><input type="text" id="cSearch" placeholder="氏名で検索..."></div>
+              <div id="cList"></div>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <label>日付</label>
+          <input type="date" id="entryDate" style="flex:1;max-width:180px">
+        </div>
+        <div class="row">
+          <label>時刻</label>
+          <div class="time-range">
+            <input type="time" id="tFrom">
+            <span>〜</span>
+            <input type="time" id="tTo">
+          </div>
+        </div>
+        <div class="slabel" style="margin-top:4px">場所</div>
+        <div class="btn-group" id="placeBtns"></div>
+        <textarea id="memo" placeholder="メモ（任意）"></textarea>
+        <button class="submit-btn" id="submitBtn">記録する</button>
       </div>
     </div>
-    <div class="slabel" style="margin-top:4px">場所</div>
-    <div class="btn-group" id="placeBtns"></div>
-    <textarea id="memo" placeholder="メモ（任意）"></textarea>
-    <button class="submit-btn" id="submitBtn">記録する</button>
   </div>
 
   <div class="page" id="pAll">
@@ -635,6 +683,7 @@ function startDbListener(){
   if(dbListenerStarted)return;
   dbListenerStarted=true;
   setSyncBar('Firebase接続中...','syncing');
+  attStartListener();
 
 onValue(dbRef, (snapshot)=>{
   const data=snapshot.val();
@@ -778,6 +827,7 @@ document.getElementById('submitBtn').addEventListener('click',()=>{
   const dateStr=dv?dv.replace(/-/g,'/'):todayStr();
   S.entries.unshift({id:Date.now(),cmIdx:S.curCM,acts:[...selActs],clientIds:[...selCl],timeFrom:tf||nowT(),timeTo:tt,place:selPlace,memo:document.getElementById('memo').value.trim(),date:dateStr});
   save();
+  attAutoCheck(dateStr); // 出勤を自動チェック
   document.getElementById('memo').value='';
   document.getElementById('entryDate').value=todayValue();
   document.getElementById('tFrom').value=nowT();
@@ -1539,6 +1589,208 @@ function clRenderSysHeader(){
   }
 }
 function clRA(){clRCS();clRI();clRY();clRU();}
+
+// ════════════════════════════════════════
+// 出勤簿
+// ════════════════════════════════════════
+const ATT_PATH = 'diary/attendance';
+let attData = {}; // {cmIdx: {'YYYY-MM-DD': true/false}}
+let attListenerOK = false;
+let attOffset = 0; // 0=当期, -1=1期前, 1=1期後...
+
+function attSave(){
+  set(ref(db, ATT_PATH), attData||{}).catch(e=>console.error('出勤簿保存エラー:',e));
+}
+
+// 20日締め期間を計算（今日が21日以降なら当月21〜翌月20、20日以前なら前月21〜当月20）
+function attPeriod(offset){
+  if(offset===undefined)offset=attOffset;
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = today.getMonth(); // 0-indexed
+  // 今日が21日以降なら当月21〜翌月20が「当期」
+  const base = today.getDate()>=21 ? m+1 : m; // end月（0-indexed）
+  // offsetを加算
+  const endM = base + offset;
+  const endDate = new Date(y, endM, 20);
+  const startDate = new Date(y, endM-1, 21);
+  return {start: startDate, end: endDate};
+}
+
+function attDateKey(d){
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+
+function attPeriodLabel(){
+  const {start,end} = attPeriod();
+  const fmt = d => (d.getMonth()+1)+'月'+d.getDate()+'日';
+  return fmt(start)+'〜'+fmt(end);
+}
+
+// 期間内の全日付を返す
+function attDays(){
+  const {start,end} = attPeriod();
+  const days=[];
+  const cur=new Date(start);
+  while(cur<=end){days.push(new Date(cur));cur.setDate(cur.getDate()+1);}
+  return days;
+}
+
+const WD=['日','月','火','水','木','金','土'];
+
+function attBuildMonthSel(){
+  const sel=document.getElementById('attMonthSel');
+  if(!sel)return;
+  // 過去12期分＋未来2期分の選択肢を生成
+  const today=new Date();
+  const curM=today.getMonth();
+  const base=today.getDate()>=21?curM+1:curM;
+  sel.innerHTML='';
+  for(let i=-12;i<=2;i++){
+    const endM=base+i;
+    const endDate=new Date(today.getFullYear(),endM,20);
+    const startDate=new Date(today.getFullYear(),endM-1,21);
+    const fmt=d=>(d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日');
+    const o=document.createElement('option');
+    o.value=i;
+    o.textContent=fmt(startDate)+'〜'+fmt(endDate);
+    if(i===attOffset)o.selected=true;
+    sel.appendChild(o);
+  }
+  if(!sel._bound){
+    sel._bound=true;
+    sel.addEventListener('change',function(){attOffset=+this.value;attRender();});
+  }
+}
+
+function attRender(){
+  const body=document.getElementById('attBody');
+  const countEl=document.getElementById('attCount');
+  if(!body)return;
+
+  attBuildMonthSel();
+
+  const cmIdx=S.curCM;
+  const myAtt=(attData[cmIdx])||{};
+  const today=attDateKey(new Date());
+  const days=attDays();
+
+  let count=0;
+  let html='';
+  for(const d of days){
+    const key=attDateKey(d);
+    const wd=d.getDay();
+    const isWE=wd===0||wd===6;
+    const isToday=key===today;
+    const checked=!!myAtt[key];
+    if(checked)count++;
+    const rowCls=isToday?'today-row':isWE?'weekend':'';
+    html+=`<tr class="${rowCls}">
+      <td>${d.getDate()}</td>
+      <td style="color:${wd===0?'#e53935':wd===6?'#1a73e8':'#555'}">${WD[wd]}</td>
+      <td><input type="checkbox" class="att-check" data-key="${key}" data-cmidx="${cmIdx}" ${checked?'checked':''}></td>
+      <td style="color:#888;font-size:10px">${checked?'9:00〜18:00':''}</td>
+    </tr>`;
+  }
+  body.innerHTML=html;
+  if(countEl)countEl.textContent=count;
+
+  // チェックイベント
+  body.querySelectorAll('.att-check').forEach(cb=>{
+    cb.addEventListener('change',function(){
+      const k=this.dataset.key;
+      const ci=+this.dataset.cmidx;
+      if(!attData[ci])attData[ci]={};
+      if(this.checked){attData[ci][k]=true;}
+      else{delete attData[ci][k];}
+      attSave();
+      // 時刻列を更新
+      const td=this.parentElement.nextElementSibling;
+      if(td)td.textContent=this.checked?'9:00〜18:00':'';
+      // カウント更新
+      const cnt=Object.keys(attData[ci]||{}).filter(key=>{
+        const days=attDays();
+        return days.some(d=>attDateKey(d)===key);
+      }).length;
+      if(countEl)countEl.textContent=cnt;
+    });
+  });
+}
+
+// 業務記録時に出勤を自動チェック
+function attAutoCheck(dateStr){
+  // dateStr: 'YYYY/MM/DD' → 'YYYY-MM-DD'
+  const key=dateStr.replace(/\//g,'-');
+  const cmIdx=S.curCM;
+  // 入力日付が属する期間を判定（offset=0: 当期、それ以外も含む）
+  const d=new Date(key);
+  // この日付が何期に属するか求める
+  const d21=new Date(d.getFullYear(),d.getMonth(),21);
+  const belongsToNext=d>=d21; // 21日以降なら翌月20日締め期間
+  const today=new Date();
+  const todayBase=today.getDate()>=21?today.getMonth()+1:today.getMonth();
+  const dBase=belongsToNext?d.getMonth()+1:d.getMonth();
+  const dOffset=dBase-todayBase+(d.getFullYear()-today.getFullYear())*12;
+  const {start,end}=attPeriod(dOffset);
+  if(d>=start&&d<=end){
+    if(!attData[cmIdx])attData[cmIdx]={};
+    if(!attData[cmIdx][key]){
+      attData[cmIdx][key]=true;
+      attSave();
+      attRender();
+    }
+  }
+}
+
+// Firebaseリスナー開始
+function attStartListener(){
+  if(attListenerOK)return;
+  attListenerOK=true;
+  onValue(ref(db,ATT_PATH),sn=>{
+    attData=sn.val()||{};
+    attRender();
+  });
+}
+
+// Excel出力（20日締め出勤簿）
+document.getElementById('attExportBtn')?.addEventListener('click',()=>{
+  if(typeof XLSX==='undefined'){alert('ページをリロードしてください');return;}
+  const cmIdx=S.curCM;
+  const cmName=(S.cms||[])[cmIdx]?.name||'';
+  const myAtt=attData[cmIdx]||{};
+  const days=attDays();
+  const {start,end}=attPeriod(attOffset);
+  const periodStr=(start.getMonth()+1)+'月'+start.getDate()+'日〜'+(end.getMonth()+1)+'月'+end.getDate()+'日';
+
+  const rows=[
+    [cmName+' 出勤簿　'+periodStr,'','',''],
+    ['日付','曜日','出勤','時刻'],
+  ];
+  let count=0;
+  for(const d of days){
+    const key=attDateKey(d);
+    const wd=d.getDay();
+    const checked=!!myAtt[key];
+    if(checked)count++;
+    rows.push([
+      (d.getMonth()+1)+'/'+d.getDate(),
+      WD[wd],
+      checked?'○':'',
+      checked?'9:00〜18:00':''
+    ]);
+  }
+  rows.push(['','','出勤日数',''+count+'日']);
+
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  // 列幅設定
+  ws['!cols']=[{wch:10},{wch:6},{wch:6},{wch:14}];
+  // タイトル行を結合
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:3}}];
+
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'出勤簿');
+  XLSX.writeFile(wb,`出勤簿_${cmName}_${(end.getMonth()+1)}月分.xlsx`);
+});
 
 </script>
 </body>
