@@ -1408,6 +1408,54 @@ function clInJittai(cid,y,m){
   return false;
 }
 function clFYOf(m,y){return m>=4?y:y+1;}
+
+// チェックON時に関連月を自動展開して保存
+function clSCWithSpread(cid,jid,key,m,y){
+  // まずその月をチェック
+  clSC(cid,jid,key,m,y,true);
+
+  if(key==='jittai'){
+    // 実態把握票：交付日以降・次の交付日の前月まで全月チェック
+    const ds=clGJittai(cid).filter(d=>d.date).sort((a,b)=>a.date.localeCompare(b.date));
+    if(!ds.length)return;
+    const ym=y*100+m;
+    for(let i=0;i<ds.length;i++){
+      const s=parseInt(ds[i].date.replace(/-/g,'').slice(0,6));
+      const e=i+1<ds.length?parseInt(ds[i+1].date.replace(/-/g,'').slice(0,6)):999999;
+      if(ym>=s&&ym<e){
+        // s月からe-1月まで全てチェック（最大5年分を上限）
+        let cur=s;const limit=Math.min(e,ym+120);
+        while(cur<limit){
+          const cy=Math.floor(cur/100),cm=cur%100;
+          clSC(cid,jid,key,cm,cy,true);
+          // 次の月へ
+          if(cm===12){cur=(cy+1)*100+1;}
+          else{cur=cy*100+(cm+1);}
+        }
+        break;
+      }
+    }
+  } else if(key==='careplan'){
+    // ケアプラン：期間内の全月チェック
+    const ps=clGPs(cid);
+    if(!ps.length)return;
+    const ym=y*100+m;
+    ps.forEach(p=>{
+      if(!p.s||!p.e)return;
+      const ps2=parseInt(p.s.replace(/-/g,'').slice(0,6));
+      const pe=parseInt(p.e.replace(/-/g,'').slice(0,6));
+      if(ym<ps2||ym>pe)return; // チェックした月が期間外なら対象外
+      let cur=ps2;
+      while(cur<=pe){
+        const cy=Math.floor(cur/100),cm=cur%100;
+        clSC(cid,jid,key,cm,cy,true);
+        if(cm===12){cur=(cy+1)*100+1;}
+        else{cur=cy*100+(cm+1);}
+      }
+    });
+  }
+  // その他の書類（提供票・利用票）は当月のみ（既にclSCで保存済み）
+}
 function clMyC(){return(S.clients||[]).filter(c=>!c.inactive&&String(c.cmIdx)===String(S.curCM));}
 
 // ── 初期化 ──
@@ -1477,7 +1525,7 @@ function clRI(){
       </select>
       <button id="clAddJ" style="padding:5px 10px;background:#1a73e8;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:11px;white-space:nowrap">追加</button>
     </div>`:''}
-  </div>\`;
+  </div>`;
 
   // ── ケアプラン有効期間 ──
   const periods=clGPs(cid);
@@ -1537,7 +1585,13 @@ function clRI(){
 
   // イベント
   el.querySelectorAll('input[data-k]').forEach(cb=>cb.addEventListener('change',function(){
-    clSC(this.dataset.cid,this.dataset.jid,this.dataset.k,+this.dataset.m,+this.dataset.y,this.checked);
+    const cid=this.dataset.cid,jid=this.dataset.jid,key=this.dataset.k;
+    const m=+this.dataset.m,y=+this.dataset.y,v=this.checked;
+    if(v){
+      clSCWithSpread(cid,jid,key,m,y); // チェックON：関連月を自動展開
+    } else {
+      clSC(cid,jid,key,m,y,false);    // チェックOFF：その月のみ解除
+    }
     clRY();clRU();
   }));
   el.querySelectorAll('.cl-ps,.cl-pe').forEach(i=>i.addEventListener('change',function(){
