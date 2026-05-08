@@ -207,7 +207,7 @@ textarea{min-height:52px;resize:vertical}
 .cl-yt td.cl-ys{position:sticky;left:0;z-index:1;background:#fff;text-align:left;cursor:pointer;color:#1a73e8;font-weight:500}
 .cl-yt td.cl-ys:hover{text-decoration:underline}
 .cl-yd{width:16px;height:16px;border-radius:50%;display:inline-block;vertical-align:middle}
-.cl-yok{background:#1a73e8}.cl-yau{background:#93c5fd}.cl-yem{background:#f0f0f0;border:1px solid #ddd}
+.cl-yok{background:#1a73e8}.cl-yau{background:#e0e0e0;border:1px solid #ccc}.cl-yem{background:#e0e0e0;border:1px solid #ccc}
 .cl-ycm{outline:2px solid #1a73e8}
 @media(max-width:640px){.cl-mv{flex-direction:column}.cl-left{width:100%;border-right:none;border-bottom:1px solid #e5e5e5}}
 
@@ -417,6 +417,15 @@ textarea{min-height:52px;resize:vertical}
       </div>
     </div>
     <div class="ss">
+      <h3>事業所マスター</h3>
+      <div style="font-size:11px;color:#888;margin-bottom:8px">書類チェックリストで使用する事業所を登録します</div>
+      <div class="tag-list" id="jigyoshoMasterList"></div>
+      <div class="add-row">
+        <input type="text" id="newJigyoshoName" placeholder="事業所名を入力">
+        <button class="add-btn" id="addJigyoshoBtn">追加</button>
+      </div>
+    </div>
+    <div class="ss">
       <h3>業務種別</h3>
       <div class="tag-list" id="actTags"></div>
       <div class="add-row"><input type="text" id="newAct" placeholder="業務名を入力"><button class="add-btn" id="addActBtn">追加</button></div>
@@ -467,7 +476,6 @@ textarea{min-height:52px;resize:vertical}
           <div class="cl-rhd" id="clYTitle" style="margin-bottom:0">年度チェック一覧</div>
           <div class="cl-leg-row" style="padding:0;background:none;border:none;flex:1;justify-content:flex-end">
             <div class="cl-leg"><span class="dok">●</span>済</div>
-            <div class="cl-leg"><span class="dau">●</span>自動</div>
             <div class="cl-leg"><span class="dem">●</span>未</div>
           </div>
         </div>
@@ -655,6 +663,7 @@ const PALBG=['#e8f0fe','#e6f4ea','#fce8e6','#ede9fe','#fef3c7','#fce7f3','#dcfce
 let S={
   cms:[{name:'山田'},{name:'田中'},{name:'佐藤'}],
   clients:[],
+  jigyoshoMaster:[],
   acts:['居宅訪問','電話対応','担当者会議','サービス調整','アセスメント','書類作成','受診同行','内部会議'],
   places:['事業所','自宅','病院','施設','電話'],
   entries:[],
@@ -701,6 +710,7 @@ onValue(dbRef, (snapshot)=>{
       set(dbRef, S); // 即座にFirebaseにも反映
     }
     if(!S.clients)S.clients=[];
+    if(!S.jigyoshoMaster)S.jigyoshoMaster=[];
   }
   setSyncBar('リアルタイム同期中','');
   setBadge('●同期済',true);
@@ -1024,7 +1034,31 @@ document.getElementById('csvBtn').addEventListener('click',()=>{
   a.download='業務日誌_'+ym+cmSuffix+'.csv';a.click();
 });
 
-function rSettings(){rCmSet();rClSet();rTags('acts','actTags','newAct','addActBtn');rTags('places','placeTags','newPlace','addPlaceBtn');}
+function rSettings(){rCmSet();rClSet();rJigyoshoMaster();rTags('acts','actTags','newAct','addActBtn');rTags('places','placeTags','newPlace','addPlaceBtn');}
+
+function rJigyoshoMaster(){
+  const el=document.getElementById('jigyoshoMasterList');if(!el)return;
+  const list=S.jigyoshoMaster||[];
+  el.innerHTML=list.map(j=>`<div class="tag-item">${j.name}<button class="tdel" data-jmid="${j.id}" style="margin-left:4px">×</button></div>`).join('');
+  el.querySelectorAll('.tdel').forEach(b=>b.addEventListener('click',()=>{
+    if(!confirm('"'+(S.jigyoshoMaster.find(j=>j.id===b.dataset.jmid)?.name||'')+'" を削除しますか？\n※この事業所を登録している利用者のデータには影響しません'))return;
+    S.jigyoshoMaster=S.jigyoshoMaster.filter(j=>j.id!==b.dataset.jmid);
+    save();rJigyoshoMaster();
+  }));
+  const addBtn=document.getElementById('addJigyoshoBtn');
+  if(addBtn&&!addBtn._bound){
+    addBtn._bound=true;
+    addBtn.addEventListener('click',()=>{
+      const inp=document.getElementById('newJigyoshoName');
+      const name=inp.value.trim();if(!name)return;
+      if((S.jigyoshoMaster||[]).find(j=>j.name===name)){alert('同名の事業所がすでに登録されています');return;}
+      if(!S.jigyoshoMaster)S.jigyoshoMaster=[];
+      S.jigyoshoMaster.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),name});
+      inp.value='';save();rJigyoshoMaster();
+    });
+    document.getElementById('newJigyoshoName')?.addEventListener('keydown',e=>{if(e.key==='Enter')addBtn.click();});
+  }
+}
 
 function rCmSet(){
   const el=document.getElementById('cmSetList');
@@ -1270,60 +1304,100 @@ document.querySelectorAll('.nav-tab').forEach(t=>t.addEventListener('click',()=>
 // ═══ 書類チェックリスト ═══
 const CL_PATH='diary/checklist2';
 const CL_F=[4,5,6,7,8,9,10,11,12,1,2,3];
+// 事業所向け書類（交付日→改名）
 const CL_JD=[
-  {key:'jittai',label:'実態把握票',hasJ:true},
-  {key:'careplan',label:'ケアプラン',hasP:true},
-  {key:'teikyohyo',label:'提供票'}
+  {key:'jittai',    label:'実態把握票', hasJ:true},
+  {key:'careplan',  label:'ケアプラン', hasP:true},
+  {key:'teikyohyo', label:'提供票'}
 ];
+// 利用者・家族向け書類
 const CL_FD=[
-  {key:'careplan',label:'ケアプラン',hasP:true},
-  {key:'riyohyo',label:'利用票'}
+  {key:'careplan', label:'ケアプラン', hasP:true},
+  {key:'riyohyo',  label:'利用票'}
 ];
-const CL_AD=[...CL_JD.map(d=>({...d,t:'j'})),...CL_FD.map(d=>({...d,t:'f'}))];
 
-let clData={},clY=clFY0(),clM=new Date().getMonth()+1;
-let clCid=null,clTm=null,clOK=false;
+let clData={}, clY=clFY0(), clM=new Date().getMonth()+1;
+let clCid=null, clTm=null, clOK=false;
 
 function clFY0(){const d=new Date();return d.getMonth()>=3?d.getFullYear():d.getFullYear()-1;}
 function clUID(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function clSv(){clearTimeout(clTm);clTm=setTimeout(()=>set(ref(db,CL_PATH),clData||{}).catch(e=>console.error(e)),700);}
 
-function clD(id){if(!clData[id])clData[id]={};return clData[id];}
-function clGC(id,t,k,m,y){return !!(clD(id)[t+'_'+k+'_'+y+'_'+m]);}
-function clSC(id,t,k,m,y,v){clD(id)[t+'_'+k+'_'+y+'_'+m]=v;clSv();}
+// ── データアクセサ ──
+function clD(cid){if(!clData[cid])clData[cid]={};return clData[cid];}
 
-function clGPs(id,pt){
-  const d=clD(id);
-  if(d['period_'+pt]&&!d['periods_'+pt]){
-    const o=d['period_'+pt];
-    if(o.s||o.e)d['periods_'+pt]=[{id:clUID(),s:o.s||'',e:o.e||''}];
-    delete d['period_'+pt];
-  }
-  return d['periods_'+pt]||[];
+// 事業所マスター
+function clGetJ(cid){return clD(cid).jigyosho||[];}
+function clSetJ(cid,arr){clD(cid).jigyosho=arr;clSv();}
+function clAddJ(cid,name){
+  const arr=clGetJ(cid);
+  arr.push({id:clUID(),name});
+  clSetJ(cid,arr);
 }
-function clSPs(id,pt,a){
-  clD(id)['periods_'+pt]=a;
-  // 事業所向けケアプランを利用者・家族向けに自動同期
-  if(pt==='j'){clD(id)['periods_f']=JSON.parse(JSON.stringify(a));}
+function clDelJ(cid,jid){clSetJ(cid,clGetJ(cid).filter(j=>j.id!==jid));}
+
+// チェックデータ: jChecks[jid][docKey][year][month]
+function clGC(cid,jid,key,m,y){
+  const d=clD(cid);
+  if(jid==='f'){
+    return !!(d.fChecks&&d.fChecks[key]&&d.fChecks[key][y]&&d.fChecks[key][y][m]);
+  }
+  return !!(d.jChecks&&d.jChecks[jid]&&d.jChecks[jid][key]&&d.jChecks[jid][key][y]&&d.jChecks[jid][key][y][m]);
+}
+function clSC(cid,jid,key,m,y,v){
+  const d=clD(cid);
+  if(jid==='f'){
+    if(!d.fChecks)d.fChecks={};
+    if(!d.fChecks[key])d.fChecks[key]={};
+    if(!d.fChecks[key][y])d.fChecks[key][y]={};
+    if(v)d.fChecks[key][y][m]=true;
+    else delete d.fChecks[key][y][m];
+  } else {
+    if(!d.jChecks)d.jChecks={};
+    if(!d.jChecks[jid])d.jChecks[jid]={};
+    if(!d.jChecks[jid][key])d.jChecks[jid][key]={};
+    if(!d.jChecks[jid][key][y])d.jChecks[jid][key][y]={};
+    if(v)d.jChecks[jid][key][y][m]=true;
+    else delete d.jChecks[jid][key][y][m];
+  }
   clSv();
 }
-function clAddP(id,pt){const a=clGPs(id,pt);a.push({id:clUID(),s:'',e:''});clSPs(id,pt,a);}
-function clDelP(id,pt,pid){clSPs(id,pt,clGPs(id,pt).filter(p=>p.id!==pid));}
-function clUpdP(id,pt,pid,s,e){const a=clGPs(id,pt);const p=a.find(x=>x.id===pid);if(p){p.s=s;p.e=e;}clSPs(id,pt,a);}
-function clGJ(id){return clD(id).jittaiDates||[];}
-function clSJ(id,a){clD(id).jittaiDates=a;clSv();}
 
-function clIP(id,pt,y,m){
+// ケアプラン期間（事業所向け→利用者向け自動同期）
+function clGPs(cid){
+  const d=clD(cid);
+  if(d.period_j&&!d.periods){
+    const o=d.period_j;
+    if(o.s||o.e)d.periods=[{id:clUID(),s:o.s||'',e:o.e||''}];
+    delete d.period_j;
+  }
+  return d.periods||[];
+}
+function clSPs(cid,arr){
+  clD(cid).periods=arr;
+  clD(cid).periods_f=JSON.parse(JSON.stringify(arr)); // 利用者向けに同期
+  clSv();
+}
+function clAddP(cid){const a=clGPs(cid);a.push({id:clUID(),s:'',e:''});clSPs(cid,a);}
+function clDelP(cid,pid){clSPs(cid,clGPs(cid).filter(p=>p.id!==pid));}
+function clUpdP(cid,pid,s,e){const a=clGPs(cid);const p=a.find(x=>x.id===pid);if(p){p.s=s;p.e=e;}clSPs(cid,a);}
+
+// 実態把握票 交付日
+function clGJittai(cid){return clD(cid).jittaiDates||[];}
+function clSJittai(cid,arr){clD(cid).jittaiDates=arr;clSv();}
+
+// ── 判定 ──
+function clInP(cid,y,m){
   const ym=y*100+m;
-  return clGPs(id,pt).some(p=>{
+  return clGPs(cid).some(p=>{
     if(!p.s||!p.e)return false;
     const ps=parseInt(p.s.replace(/-/g,'').slice(0,6));
     const pe=parseInt(p.e.replace(/-/g,'').slice(0,6));
     return ym>=ps&&ym<=pe;
   });
 }
-function clIJ(id,y,m){
-  const ds=clGJ(id).filter(d=>d.date).sort((a,b)=>a.date.localeCompare(b.date));
+function clInJittai(cid,y,m){
+  const ds=clGJittai(cid).filter(d=>d.date).sort((a,b)=>a.date.localeCompare(b.date));
   if(!ds.length)return false;
   const ym=y*100+m;
   for(let i=0;i<ds.length;i++){
@@ -1336,229 +1410,377 @@ function clIJ(id,y,m){
 function clFYOf(m,y){return m>=4?y:y+1;}
 function clMyC(){return(S.clients||[]).filter(c=>!c.inactive&&String(c.cmIdx)===String(S.curCM));}
 
+// ── 初期化 ──
 function clInit(){
   if(!clOK){
     clOK=true;
     onValue(ref(db,CL_PATH),sn=>{clData=sn.val()||{};clRA();});
-    // 年度・月セレクタ
-    const yE=document.getElementById('clYSel'),mE=document.getElementById('clMSel');
-    const ny=clFY0();
-    for(let y=ny-2;y<=ny+1;y++){
-      const o=document.createElement('option');
-      o.value=y;o.textContent=y+'年度';if(y===clY)o.selected=true;
-      yE.appendChild(o);
-    }
-    mE.innerHTML=CL_F.map(m=>`<option value="${m}"${m===clM?' selected':''}>${m}月</option>`).join('');
-    yE.addEventListener('change',()=>{clY=+yE.value;clRA();});
-    mE.addEventListener('change',()=>{clM=+mE.value;clRA();});
-
-    document.getElementById('clCS').addEventListener('change',function(){clCid=this.value||null;clRI();});
+    clInitSels();
+    document.getElementById('clCS').addEventListener('change',function(){clCid=this.value||null;clRI();clRY();});
     document.getElementById('clXBtn').addEventListener('click',clXL);
+    document.getElementById('clBackBtn')?.addEventListener('click',()=>{
+      document.getElementById('pChecklist').classList.remove('active');
+      document.querySelector('.nav-tab[data-p="pInput"]')?.click();
+    });
   }
-  clRenderSysHeader();
-  clRCS();clRA();
+  clRenderSysHeader();clRCS();clRA();
+}
+
+function clInitSels(){
+  const yEl=document.getElementById('clYSel');
+  const mEl=document.getElementById('clMSel');
+  const ny=clFY0();
+  for(let y=ny-2;y<=ny+1;y++){
+    const o=document.createElement('option');
+    o.value=y;o.textContent=y+'年度';if(y===clY)o.selected=true;
+    yEl.appendChild(o);
+  }
+  mEl.innerHTML=CL_F.map(m=>`<option value="${m}"${m===clM?' selected':''}>${m}月</option>`).join('');
+  yEl.addEventListener('change',()=>{clY=+yEl.value;clRY();clRU();});
+  mEl.addEventListener('change',()=>{clM=+mEl.value;clRY();clRU();});
 }
 
 function clRCS(){
   const sel=document.getElementById('clCS');if(!sel)return;
-  const list=clMyC();const prev=sel.value;
+  const prev=sel.value;const list=clMyC();
   sel.innerHTML='<option value="">── 選択してください ──</option>'+
     list.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
   if(prev&&list.find(c=>String(c.id)===prev))sel.value=prev;
   else if(!list.find(c=>String(c.id)===clCid))clCid=null;
 }
 
+// ── 入力フォーム（左パネル） ──
 function clRI(){
   const el=document.getElementById('clIF');if(!el)return;
-  if(!clCid){el.innerHTML='<div style="font-size:12px;color:#aaa;padding:12px 0;text-align:center">利用者を選択してください</div>';return;}
-  const id=clCid,y=clY,m=clM;let h='';
+  if(!clCid){
+    el.innerHTML='<div style="font-size:12px;color:#aaa;padding:12px 0;text-align:center">利用者を選択してください</div>';
+    return;
+  }
+  const cid=clCid,y=clY,m=clM;
+  const jigyoshoList=clGetJ(cid);
+  let h='';
 
-  h+=`<div class="cl-fsec"><div class="cl-fst">事業所向け</div>`;
-  for(const doc of CL_JD){
-    const aJ=doc.hasJ&&clIJ(id,y,m);
-    const aP=doc.hasP&&clIP(id,'j',y,m);
-    const au=aJ||aP;
-    const ck=au||clGC(id,'j',doc.key,m,y);
-    h+=`<div class="cl-crow">
-      <input type="checkbox" ${ck?'checked':''} ${au?'disabled':''}
-        data-t="j" data-k="${doc.key}" data-m="${m}" data-y="${y}" data-id="${id}">
-      <span class="cl-clbl">${doc.label}</span>
-      ${au?'<span class="cl-abadge">自動</span>':''}
-    </div>`;
-    if(doc.hasJ){
-      const ds=clGJ(id);
-      h+=`<div class="cl-jb"><div class="cl-jlbl">📅 実態把握票 作成日</div>
-        <div id="clJE">${ds.map(d=>`<div class="cl-je">
-          <input type="date" class="cl-jdi" data-id="${id}" data-jid="${d.id}" value="${d.date||''}">
-          <button class="cl-jdel" data-id="${id}" data-jid="${d.id}">×</button>
-        </div>`).join('')}</div>
-        <button class="cl-addj" data-id="${id}">＋ 作成日を追加</button>
+  // ── 担当事業所（マスターから選択） ──
+  const masterList=S.jigyoshoMaster||[];
+  h+=`<div class="cl-fsec">
+    <div class="cl-fst" style="margin-bottom:6px">担当事業所</div>
+    ${masterList.length===0?'<div style="font-size:11px;color:#e65100;background:#fff3e0;border-radius:5px;padding:6px 8px;">⚠️ 設定タブで事業所マスターを登録してください</div>':''}
+    <div>${jigyoshoList.map(j=>`
+      <div style="display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid #f0f0f0">
+        <span style="flex:1;font-size:12px;color:#333">${j.name}</span>
+        <button class="cl-jdel2" data-cid="${cid}" data-jid="${j.id}" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:14px;padding:0;line-height:1">×</button>
+      </div>`).join('')}</div>
+    ${masterList.length>0?`<div style="display:flex;gap:4px;margin-top:6px;align-items:center">
+      <select id="clSelJ" style="flex:1;padding:5px 7px;border:1px solid #ccc;border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:#222">
+        <option value="">── 事業所を選択 ──</option>
+        ${masterList.filter(m=>!jigyoshoList.find(j=>j.name===m.name)).map(m=>`<option value="${m.id}" data-name="${m.name}">${m.name}</option>`).join('')}
+      </select>
+      <button id="clAddJ" style="padding:5px 10px;background:#1a73e8;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:11px;white-space:nowrap">追加</button>
+    </div>`:''}
+  </div>\`;
+
+  // ── ケアプラン有効期間 ──
+  const periods=clGPs(cid);
+  h+=`<div class="cl-fsec">
+    <div class="cl-fst">📆 ケアプラン有効期間</div>
+    <div style="font-size:10px;color:#888;margin-bottom:5px">事業所・利用者向けに共通適用されます</div>
+    <div id="clPList">${periods.map(p=>`<div class="cl-prow">
+      <input type="date" class="cl-ps" data-cid="${cid}" data-pid="${p.id}" value="${p.s||''}">
+      <span>〜</span>
+      <input type="date" class="cl-pe" data-cid="${cid}" data-pid="${p.id}" value="${p.e||''}">
+      <button class="cl-pdel" data-cid="${cid}" data-pid="${p.id}">×</button>
+    </div>`).join('')}</div>
+    <button class="cl-addp" data-cid="${cid}" style="width:100%;margin-top:4px">＋ 期間を追加</button>
+  </div>`;
+
+  // ── 実態把握票 交付日（全事業所共通） ──
+  const jdates=clGJittai(cid);
+  h+=`<div class="cl-fsec">
+    <div class="cl-fst">📅 実態把握票 交付日</div>
+    <div>${jdates.map(d=>`<div class="cl-je">
+      <input type="date" class="cl-jdi" data-cid="${cid}" data-jid="${d.id}" value="${d.date||''}">
+      <button class="cl-jdel" data-cid="${cid}" data-jid="${d.id}">×</button>
+    </div>`).join('')}</div>
+    <button class="cl-addj" data-cid="${cid}">＋ 交付日を追加</button>
+  </div>`;
+
+  // ── 月次チェック（選択月のチェック入力） ──
+  h+=`<div class="cl-fsec">
+    <div class="cl-fst">${y}年${m}月 チェック入力</div>`;
+
+  // 各事業所
+  jigyoshoList.forEach(j=>{
+    h+=`<div style="font-size:11px;font-weight:700;color:#1a73e8;margin:7px 0 4px;background:#e8f0fe;padding:3px 6px;border-radius:4px">🏢 ${j.name}</div>`;
+    CL_JD.forEach(doc=>{
+      const chk=clGC(cid,j.id,doc.key,m,y);
+      h+=`<div class="cl-crow">
+        <input type="checkbox" ${chk?'checked':''}
+          data-cid="${cid}" data-jid="${j.id}" data-k="${doc.key}" data-m="${m}" data-y="${y}">
+        <span class="cl-clbl">${doc.label}</span>
       </div>`;
-    }
-    if(doc.hasP){
-      const ps=clGPs(id,'j');
-      h+=`<div class="cl-pb"><div class="cl-plbl">📆 ケアプラン有効期間（事業所）</div>
-        <div class="cl-plist">${ps.map(p=>`<div class="cl-prow">
-          <input type="date" class="cl-ps" data-id="${id}" data-pt="j" data-pid="${p.id}" value="${p.s||''}">
-          <span>〜</span>
-          <input type="date" class="cl-pe" data-id="${id}" data-pt="j" data-pid="${p.id}" value="${p.e||''}">
-          <button class="cl-pdel" data-id="${id}" data-pt="j" data-pid="${p.id}">×</button>
-        </div>`).join('')}</div>
-        <button class="cl-addp" data-id="${id}" data-pt="j">＋ 期間を追加</button>
-      </div>`;
-    }
-  }
-  // 利用者・家族向けは事業所向けと同期（表示のみ）
-  h+=`</div><div class="cl-fsec"><div class="cl-fst">利用者・家族向け</div>
-    <div style="font-size:11px;color:#888;margin-bottom:8px">※ ケアプラン期間は事業所向けと自動同期されます</div>`;
-  for(const doc of CL_FD){
-    const au=doc.hasP&&clIP(id,'f',y,m);
-    const ck=au||clGC(id,'f',doc.key,m,y);
+    });
+  });
+
+  // 利用者・家族
+  h+=`<div style="font-size:11px;font-weight:700;color:#e8710a;margin:7px 0 4px;background:#fce8e6;padding:3px 6px;border-radius:4px">👤 利用者・ご家族</div>`;
+  CL_FD.forEach(doc=>{
+    const chk=clGC(cid,'f',doc.key,m,y);
     h+=`<div class="cl-crow">
-      <input type="checkbox" ${ck?'checked':''} ${au?'disabled':''}
-        data-t="f" data-k="${doc.key}" data-m="${m}" data-y="${y}" data-id="${id}">
+      <input type="checkbox" ${chk?'checked':''}
+        data-cid="${cid}" data-jid="f" data-k="${doc.key}" data-m="${m}" data-y="${y}">
       <span class="cl-clbl">${doc.label}</span>
-      ${au?'<span class="cl-abadge">自動</span>':''}
     </div>`;
-    if(doc.hasP){
-      const ps=clGPs(id,'f');
-      if(ps.length){
-        h+=`<div class="cl-pb"><div class="cl-plbl">📆 ケアプラン有効期間（利用者・同期済）</div>
-          <div class="cl-plist">${ps.map(p=>`<div class="cl-prow" style="opacity:0.8">
-            <input type="date" value="${p.s||''}" disabled style="border-color:#90caf9;background:#f0f4ff;color:#555;font-family:inherit;padding:3px 5px;border-radius:5px;font-size:11px">
-            <span>〜</span>
-            <input type="date" value="${p.e||''}" disabled style="border-color:#90caf9;background:#f0f4ff;color:#555;font-family:inherit;padding:3px 5px;border-radius:5px;font-size:11px">
-          </div>`).join('')}</div>
-        </div>`;
-      } else {
-        h+=`<div class="cl-pb" style="opacity:0.6"><div class="cl-plbl">📆 ケアプラン有効期間（利用者・同期済）</div>
-          <div style="font-size:11px;color:#999;padding:4px 0">事業所向けで期間を設定すると自動反映されます</div>
-        </div>`;
-      }
-    }
-  }
+  });
   h+=`</div>`;
+
   el.innerHTML=h;
 
+  // イベント
   el.querySelectorAll('input[data-k]').forEach(cb=>cb.addEventListener('change',function(){
-    clSC(this.dataset.id,this.dataset.t,this.dataset.k,+this.dataset.m,+this.dataset.y,this.checked);clRA();
+    clSC(this.dataset.cid,this.dataset.jid,this.dataset.k,+this.dataset.m,+this.dataset.y,this.checked);
+    clRY();clRU();
   }));
   el.querySelectorAll('.cl-ps,.cl-pe').forEach(i=>i.addEventListener('change',function(){
     const w=this.closest('.cl-prow');
-    clUpdP(this.dataset.id,this.dataset.pt,this.dataset.pid,w.querySelector('.cl-ps').value,w.querySelector('.cl-pe').value);
-    clRI();clRA();
+    clUpdP(this.dataset.cid,this.dataset.pid,w.querySelector('.cl-ps').value,w.querySelector('.cl-pe').value);
+    clRI();clRY();clRU();
   }));
   el.querySelectorAll('.cl-pdel').forEach(b=>b.addEventListener('click',function(){
-    clDelP(this.dataset.id,this.dataset.pt,this.dataset.pid);clRI();clRA();
+    clDelP(this.dataset.cid,this.dataset.pid);clRI();clRY();clRU();
   }));
   el.querySelectorAll('.cl-addp').forEach(b=>b.addEventListener('click',function(){
-    clAddP(this.dataset.id,this.dataset.pt);clRI();clRA();
+    clAddP(this.dataset.cid);clRI();clRY();clRU();
   }));
   el.querySelectorAll('.cl-jdi').forEach(i=>i.addEventListener('change',function(){
-    const ds=clGJ(this.dataset.id);const e=ds.find(d=>d.id===this.dataset.jid);if(e)e.date=this.value;
-    clSJ(this.dataset.id,ds);clRI();clRA();
+    const ds=clGJittai(this.dataset.cid);
+    const e=ds.find(d=>d.id===this.dataset.jid);if(e)e.date=this.value;
+    clSJittai(this.dataset.cid,ds);clRI();clRY();clRU();
   }));
   el.querySelectorAll('.cl-jdel').forEach(b=>b.addEventListener('click',function(){
-    clSJ(this.dataset.id,clGJ(this.dataset.id).filter(d=>d.id!==this.dataset.jid));clRI();clRA();
+    clSJittai(this.dataset.cid,clGJittai(this.dataset.cid).filter(d=>d.id!==this.dataset.jid));
+    clRI();clRY();clRU();
   }));
   el.querySelectorAll('.cl-addj').forEach(b=>b.addEventListener('click',function(){
-    const ds=clGJ(this.dataset.id);ds.push({id:clUID(),date:''});clSJ(this.dataset.id,ds);clRI();
+    const ds=clGJittai(this.dataset.cid);ds.push({id:clUID(),date:''});
+    clSJittai(this.dataset.cid,ds);clRI();
   }));
+  el.querySelectorAll('.cl-jdel2').forEach(b=>b.addEventListener('click',function(){
+    if(!confirm(clGetJ(this.dataset.cid).find(j=>j.id===this.dataset.jid)?.name+'を削除しますか？'))return;
+    clDelJ(this.dataset.cid,this.dataset.jid);clRI();clRY();clRU();
+  }));
+  const addJBtn=document.getElementById('clAddJ');
+  if(addJBtn)addJBtn.addEventListener('click',()=>{
+    const sel=document.getElementById('clSelJ');if(!sel)return;
+    const opt=sel.options[sel.selectedIndex];
+    const name=opt?.dataset?.name||'';if(!name)return;
+    clAddJ(cid,name);clRI();clRY();clRU();
+  });
 }
 
-
+// ── 年度グリッド ──
 function clRY(){
   const el=document.getElementById('clYTbl');const tEl=document.getElementById('clYTitle');
   if(!el)return;
-  el.style.display='';
-  const list=clMyC();const y=clY;
+  const y=clY;
   if(tEl)tEl.textContent=y+'年度（'+y+'/4〜'+(y+1)+'/3）チェック一覧';
-  if(!list.length){el.innerHTML='<div style="padding:20px;text-align:center;color:#aaa">担当利用者が登録されていません</div>';return;}
-  let h=`<table class="cl-yt"><thead>
-    <tr><th class="cl-ys" rowspan="3">利用者</th>
-      <th colspan="${CL_JD.length*12}" style="background:#e8f0fe;color:#1a73e8">事業所向け</th>
-      <th colspan="${CL_FD.length*12}" style="background:#e8f5e9;color:#0f9d58">利用者・家族向け</th>
-    </tr><tr>
-      ${CL_JD.map(d=>`<th colspan="12" style="background:#e8f0fe;color:#1a73e8;font-size:10px">${d.label}</th>`).join('')}
-      ${CL_FD.map(d=>`<th colspan="12" style="background:#e8f5e9;color:#0f9d58;font-size:10px">${d.label}</th>`).join('')}
-    </tr><tr>
-      ${CL_AD.map(d=>CL_F.map(m=>{
-        const ic=m===clM;
-        return`<th style="font-size:9px;padding:2px 1px;min-width:14px;${ic?'background:#dbeafe;color:#1a73e8':''}">${m}</th>`;
-      }).join('')).join('')}
-    </tr></thead><tbody>`;
-  for(const c of list){
-    const id=String(c.id);
-    h+=`<tr><td class="cl-ys" data-id="${id}">${c.name}</td>`;
-    for(const d of CL_AD){
-      for(const m of CL_F){
-        const fy=clFYOf(m,y);
-        const au=(d.hasJ&&clIJ(id,fy,m))||(d.hasP&&clIP(id,d.t,fy,m));
-        const ok=au||clGC(id,d.t,d.key,m,fy);
-        const ic=m===clM;
-        const dc=ok?(au?'cl-yau':'cl-yok'):'cl-yem';
-        h+=`<td style="padding:2px;${ic?'background:#f0f7ff':''}"><div class="cl-yd ${dc}${ic?' cl-ycm':''}"></div></td>`;
-      }
-    }
-    h+=`</tr>`;
+
+  if(!clCid){
+    // 利用者未選択：担当全員の一覧
+    const list=clMyC();
+    if(!list.length){el.innerHTML='<div style="padding:20px;text-align:center;color:#aaa">担当利用者が登録されていません</div>';return;}
+    // シンプルな全員ビュー（事業所数が人によって違うので名前一覧＋クリックで選択）
+    let h=`<div style="font-size:12px;color:#888;margin-bottom:8px">利用者を選択すると詳細チェック表が表示されます</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">`;
+    list.forEach(c=>{
+      const jList=clGetJ(String(c.id));
+      const jCount=jList.length;
+      // 当月の未チェック数（手動チェックのみ）
+      let unc=0;
+      jList.forEach(j=>{
+        CL_JD.forEach(d=>{
+          if(!clGC(String(c.id),j.id,d.key,clM,y))unc++;
+        });
+      });
+      CL_FD.forEach(d=>{
+        if(!clGC(String(c.id),'f',d.key,clM,y))unc++;
+      });
+      h+=`<div class="cl-uc" data-id="${c.id}" style="padding:6px 12px;border-radius:8px;border:1px solid ${unc>0?'#ffcc80':'#c8e6c9'};background:${unc>0?'#fff8f0':'#f1f8e9'};cursor:pointer">
+        <div style="font-size:12px;font-weight:600;color:#333">${c.name}</div>
+        <div style="font-size:10px;color:${unc>0?'#e65100':'#388e3c'};margin-top:2px">${jCount}事業所 ${unc>0?'未'+unc+'件':'✓完了'}</div>
+      </div>`;
+    });
+    h+=`</div>`;
+    el.innerHTML=h;
+    el.querySelectorAll('.cl-uc[data-id]').forEach(card=>card.addEventListener('click',()=>{
+      clCid=card.dataset.id;
+      const sel=document.getElementById('clCS');if(sel)sel.value=clCid;
+      clRI();clRY();
+    }));
+    return;
   }
-  h+=`</tbody></table>`;
+
+  // 利用者選択済み：詳細グリッド
+  const cid=clCid;
+  const client=clMyC().find(c=>String(c.id)===cid);
+  const jigyoshoList=clGetJ(cid);
+
+  let h=`<div style="font-size:13px;font-weight:700;color:#111;margin-bottom:10px">
+    ${client?client.name:''} 年度チェック一覧
+    <button onclick="clCid=null;document.getElementById('clCS').value='';clRI();clRY();" style="margin-left:10px;font-size:11px;color:#1a73e8;background:none;border:1px solid #c5ddf9;border-radius:5px;padding:2px 8px;cursor:pointer">← 一覧に戻る</button>
+  </div>`;
+
+  if(!jigyoshoList.length){
+    h+=`<div style="padding:16px;background:#fff8e1;border-radius:8px;font-size:12px;color:#7a6000">
+      左パネルで担当事業所を登録してください
+    </div>`;
+    el.innerHTML=h;return;
+  }
+
+  // 月ヘッダー
+  const monthCols=CL_F.map(m=>{
+    const isCur=m===clM;
+    return `<th style="font-size:9px;padding:2px 1px;min-width:14px;${isCur?'background:#dbeafe;color:#1a73e8':''}font-weight:600">${m}</th>`;
+  }).join('');
+
+  // 各事業所セクション
+  jigyoshoList.forEach(j=>{
+    const jCols=CL_JD.length;
+    h+=`<div style="margin-bottom:8px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden">
+      <div style="background:#e8f0fe;color:#1a73e8;font-size:11px;font-weight:700;padding:5px 10px;border-bottom:1px solid #c5ddf9">
+        🏢 ${j.name}
+      </div>
+      <div style="overflow-x:auto">
+      <table class="cl-yt">
+        <thead>
+          <tr>
+            <th class="cl-ys" style="min-width:70px">書類</th>
+            ${monthCols}
+          </tr>
+        </thead>
+        <tbody>`;
+    CL_JD.forEach(doc=>{
+      h+=`<tr><td class="cl-ys" style="font-size:11px;color:#444">${doc.label}</td>`;
+      CL_F.forEach(m=>{
+        const fy=clFYOf(m,y);
+        const inPeriod=(doc.hasJ&&clInJittai(cid,fy,m))||(doc.hasP&&clInP(cid,fy,m));
+        const ok=clGC(cid,j.id,doc.key,m,fy);
+        const isCur=m===clM;
+        // 青=チェック済、水色=期間内未チェック、グレー=期間外未チェック
+        const dc=ok?'cl-yok':(inPeriod?'cl-yau':'cl-yem');
+        h+=`<td style="padding:2px;${isCur?'background:#f0f7ff':''}"><div class="cl-yd ${dc}${isCur?' cl-ycm':''}"></div></td>`;
+      });
+      h+=`</tr>`;
+    });
+    h+=`</tbody></table></div></div>`;
+  });
+
+  // 利用者・家族セクション
+  h+=`<div style="margin-bottom:8px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden">
+    <div style="background:#fce8e6;color:#e8710a;font-size:11px;font-weight:700;padding:5px 10px;border-bottom:1px solid #ffcdd2">
+      👤 利用者・ご家族
+    </div>
+    <div style="overflow-x:auto">
+    <table class="cl-yt">
+      <thead>
+        <tr>
+          <th class="cl-ys" style="min-width:70px">書類</th>
+          ${monthCols}
+        </tr>
+      </thead>
+      <tbody>`;
+  CL_FD.forEach(doc=>{
+    h+=`<tr><td class="cl-ys" style="font-size:11px;color:#444">${doc.label}</td>`;
+    CL_F.forEach(m=>{
+      const fy=clFYOf(m,y);
+      const inPeriod=doc.hasP&&clInP(cid,fy,m);
+      const ok=clGC(cid,'f',doc.key,m,fy);
+      const isCur=m===clM;
+      const dc=ok?'cl-yok':(inPeriod?'cl-yau':'cl-yem');
+      h+=`<td style="padding:2px;${isCur?'background:#f0f7ff':''}"><div class="cl-yd ${dc}${isCur?' cl-ycm':''}"></div></td>`;
+    });
+    h+=`</tr>`;
+  });
+  h+=`</tbody></table></div></div>`;
+
   el.innerHTML=h;
-  el.querySelectorAll('.cl-ys[data-id]').forEach(td=>td.addEventListener('click',()=>{
-    clCid=td.dataset.id;
-    const s=document.getElementById('clCS');if(s)s.value=clCid;
-    clRI();clRY();
-  }));
 }
 
+// ── 未チェックバー ──
 function clRU(){
   const el=document.getElementById('clUList');const lb=document.getElementById('clULbl');
-  if(!el)return;
+  if(!el||!lb)return;el.innerHTML='';
   const list=clMyC();const y=clY;const m=clM;
   const unc=list.filter(c=>{
-    const id=String(c.id);
-    for(const d of CL_JD){if(!(d.hasJ&&clIJ(id,y,m))&&!(d.hasP&&clIP(id,'j',y,m))&&!clGC(id,'j',d.key,m,y))return true;}
-    for(const d of CL_FD){if(!(d.hasP&&clIP(id,'f',y,m))&&!clGC(id,'f',d.key,m,y))return true;}
+    const cid=String(c.id);
+    const jList=clGetJ(cid);
+    for(const j of jList){
+      for(const d of CL_JD){
+        if(!clGC(cid,j.id,d.key,m,y))return true;
+      }
+    }
+    for(const d of CL_FD){
+      if(!(d.hasP&&clInP(cid,y,m))&&!clGC(cid,'f',d.key,m,y))return true;
+    }
     return false;
   });
-  if(lb)lb.textContent=y+'年'+m+'月 未チェック（'+unc.length+'名）';
+  lb.textContent=y+'年'+m+'月 未チェック（'+unc.length+'名）';
   if(!unc.length){el.innerHTML='<span class="cl-uok">✅ 全員チェック済みです</span>';return;}
   el.innerHTML=unc.map(c=>`<div class="cl-uc" data-id="${c.id}">${c.name}</div>`).join('');
-  el.querySelectorAll('.cl-uc').forEach(ch=>ch.addEventListener('click',()=>{
+  el.querySelectorAll('.cl-uc[data-id]').forEach(ch=>ch.addEventListener('click',()=>{
     clCid=ch.dataset.id;
-    const s=document.getElementById('clCS');if(s)s.value=clCid;
+    const sel=document.getElementById('clCS');if(sel)sel.value=clCid;
     clRI();clRY();
   }));
 }
 
+// ── Excel出力 ──
 function clXL(){
+  if(typeof XLSX==='undefined'){alert('ページをリロードしてください');return;}
   const list=clMyC();const y=clY;
   if(!list.length){alert('担当利用者がいません');return;}
-  if(typeof XLSX==='undefined'){alert('ページをリロードしてください');return;}
   const wb=XLSX.utils.book_new();
-  function mk(docs,pt,nm){
-    const rows=[['利用者',...CL_F.map(m=>m+'月')]];
-    for(const d of docs){
-      rows.push([`【${d.label}】`,...Array(12).fill('')]);
-      for(const c of list){
-        const id=String(c.id),row=[c.name];
-        for(const m of CL_F){
+
+  list.forEach(c=>{
+    const cid=String(c.id);
+    const jList=clGetJ(cid);
+    const rows=[[c.name+' '+y+'年度 書類交付チェックリスト']];
+    rows.push(['区分/書類',...CL_F.map(m=>m+'月')]);
+
+    jList.forEach(j=>{
+      rows.push(['【'+j.name+'】',...Array(12).fill('')]);
+      CL_JD.forEach(doc=>{
+        const row=[doc.label];
+        CL_F.forEach(m=>{
           const fy=clFYOf(m,y);
-          const au=(d.hasJ&&clIJ(id,fy,m))||(d.hasP&&clIP(id,pt,fy,m));
-          row.push(au?'自動':clGC(id,pt,d.key,m,fy)?'✓':'');
-        }
+          const autoJ=doc.hasJ&&clInJittai(cid,fy,m);
+          const autoP=doc.hasP&&clInP(cid,fy,m);
+          row.push(clGC(cid,j.id,doc.key,m,fy)?'✓':'');
+        });
         rows.push(row);
-      }
-      rows.push([]);
-    }
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),nm);
-  }
-  mk(CL_JD,'j','事業所向け');mk(CL_FD,'f','利用者・家族向け');
-  XLSX.writeFile(wb,`書類チェック_${(S.cms||[])[S.curCM]?.name||''}CM_${y}年度.xlsx`);
+      });
+    });
+    rows.push(['【利用者・ご家族】',...Array(12).fill('')]);
+    CL_FD.forEach(doc=>{
+      const row=[doc.label];
+      CL_F.forEach(m=>{
+        const fy=clFYOf(m,y);
+        const isAuto=doc.hasP&&clInP(cid,fy,m);
+        row.push(clGC(cid,'f',doc.key,m,fy)?'✓':'');
+      });
+      rows.push(row);
+    });
+    rows.push([]);
+
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+    const sname=c.name.slice(0,31);
+    XLSX.utils.book_append_sheet(wb,ws,sname);
+  });
+
+  const cmn=(S.cms||[])[S.curCM]?.name||'';
+  XLSX.writeFile(wb,`書類チェック_${cmn}CM_${y}年度.xlsx`);
 }
 
 function clRenderSysHeader(){
-  // CMタブ
   const ct=document.getElementById('clCmTabs');
   if(ct){
     ct.innerHTML=(S.cms||[]).map((cm,i)=>
@@ -1573,21 +1795,10 @@ function clRenderSysHeader(){
       clRenderSysHeader();clRCS();clRI();clRY();clRU();
     }));
   }
-  // 同期バッジ
   const sb=document.getElementById('clSyncBadge');
   if(sb){const ob=document.getElementById('sbadge');if(ob)sb.textContent=ob.textContent;}
-  // 戻るボタン
-  const bb=document.getElementById('clBackBtn');
-  if(bb&&!bb._bound){
-    bb._bound=true;
-    bb.addEventListener('click',()=>{
-      document.getElementById('pChecklist').classList.remove('active');
-      // 業務日誌側のアクティブタブに戻る
-      const prevTab=document.querySelector('.nav-tab[data-p="pInput"]');
-      if(prevTab)prevTab.click();
-    });
-  }
 }
+
 function clRA(){clRCS();clRI();clRY();clRU();}
 
 // ════════════════════════════════════════
