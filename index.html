@@ -845,7 +845,12 @@ document.getElementById('submitBtn').addEventListener('click',()=>{
   document.getElementById('tTo').value='';
   document.getElementById('cSearch').value='';
   selActs.clear();selPlace='';selCl.clear();
-  rActBtns();rPlaceBtns();rChips();rClientDrop('');rTL('allTL',null,filterAct);rStats();
+  rActBtns();rPlaceBtns();rChips();rClientDrop('');
+  rTL('allTL',null,filterAct);
+  // 遡り入力した月をセレクタに追加して選択状態にする
+  const submittedMonth=dateStr.replace(/\//g,'-').slice(0,7);
+  initMonthSel(submittedMonth);
+  rStats();
 });
 
 // 日付・時刻の初期値
@@ -893,14 +898,26 @@ function rFilterBar(){
   el.querySelectorAll('.f-btn').forEach(b=>b.addEventListener('click',()=>{filterAct=b.dataset.f;rFilterBar();rTL('allTL',null,filterAct);}));
 }
 
-function initMonthSel(){
+function initMonthSel(keepVal){
   const sel=document.getElementById('monthSel');
-  const ms=new Set((S.entries||[]).map(e=>e.date?e.date.slice(0,7).replace('/','-'):null).filter(Boolean));
+  // 全エントリから月一覧を収集
+  const ms=new Set((S.entries||[]).map(e=>{
+    if(!e.date)return null;
+    // 'YYYY/MM/DD' or 'YYYY-MM-DD' 両対応
+    const normalized=e.date.replace(/\//g,'-');
+    return normalized.slice(0,7);
+  }).filter(Boolean));
+  // 当月を必ず含める
   const d=new Date();const cur=d.getFullYear()+'-'+pad(d.getMonth()+1);
   if(!ms.has(cur))ms.add(cur);
-  const cur_val=sel.value;
-  sel.innerHTML=[...ms].sort((a,b)=>b.localeCompare(a)).map(m=>{const[y,mo]=m.split('-');return`<option value="${m}"${m===cur_val?' selected':''}>${y}年${+mo}月</option>`;}).join('');
-  if(!sel.onchange)sel.addEventListener('change',rStats);
+  // 現在の選択値を保持（引数優先→既存値→最新月）
+  const cur_val=keepVal||sel.value||[...ms].sort((a,b)=>b.localeCompare(a))[0]||cur;
+  sel.innerHTML=[...ms].sort((a,b)=>b.localeCompare(a)).map(m=>{
+    const[y,mo]=m.split('-');
+    return`<option value="${m}"${m===cur_val?' selected':''}>${y}年${+mo}月</option>`;
+  }).join('');
+  // onchangeを毎回再登録（innerHTML書換で失われるため）
+  sel.onchange=rStats;
   rStatsCmBtns();
 }
 
