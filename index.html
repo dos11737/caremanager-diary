@@ -1336,6 +1336,44 @@ function clAddJ(cid,name){
 }
 function clDelJ(cid,jid){clSetJ(cid,clGetJ(cid).filter(j=>j.id!==jid));}
 
+// 事業所の利用期間 (usagePeriods: [{id, s, e}])
+function clGetJPeriods(cid,jid){
+  const j=clGetJ(cid).find(x=>x.id===jid);
+  return j?.usagePeriods||[];
+}
+function clSetJPeriods(cid,jid,arr){
+  const list=clGetJ(cid);
+  const j=list.find(x=>x.id===jid);
+  if(j)j.usagePeriods=arr;
+  clSetJ(cid,list);
+}
+function clAddJPeriod(cid,jid){
+  const arr=clGetJPeriods(cid,jid);
+  arr.push({id:clUID(),s:'',e:''});
+  clSetJPeriods(cid,jid,arr);
+}
+function clDelJPeriod(cid,jid,pid){
+  clSetJPeriods(cid,jid,clGetJPeriods(cid,jid).filter(p=>p.id!==pid));
+}
+function clUpdJPeriod(cid,jid,pid,s,e){
+  const arr=clGetJPeriods(cid,jid);
+  const p=arr.find(x=>x.id===pid);
+  if(p){p.s=s;p.e=e;}
+  clSetJPeriods(cid,jid,arr);
+}
+
+// 指定月に事業所が利用中かどうか（利用期間が1つも登録されていなければ常に利用中とみなす）
+function clJActive(cid,jid,y,m){
+  const periods=clGetJPeriods(cid,jid);
+  if(!periods.length)return true; // 期間未登録 = 常に対象
+  const ym=y*100+m;
+  return periods.some(p=>{
+    const s=p.s?parseInt(p.s.replace(/-/g,'').slice(0,6)):0;
+    const e=p.e?parseInt(p.e.replace(/-/g,'').slice(0,6)):999999;
+    return ym>=s&&ym<=e;
+  });
+}
+
 // チェックデータ: jChecks[jid][docKey][year][month]
 function clGC(cid,jid,key,m,y){
   const d=clD(cid);
@@ -1513,11 +1551,27 @@ function clRI(){
   h+=`<div class="cl-fsec">
     <div class="cl-fst" style="margin-bottom:6px">担当事業所</div>
     ${masterList.length===0?'<div style="font-size:11px;color:#e65100;background:#fff3e0;border-radius:5px;padding:6px 8px;">⚠️ 設定タブで事業所マスターを登録してください</div>':''}
-    <div>${jigyoshoList.map(j=>`
-      <div style="display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid #f0f0f0">
-        <span style="flex:1;font-size:12px;color:#333">${j.name}</span>
-        <button class="cl-jdel2" data-cid="${cid}" data-jid="${j.id}" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:14px;padding:0;line-height:1">×</button>
-      </div>`).join('')}</div>
+    <div id="clJListWrap">${jigyoshoList.map(j=>{
+      const jps=clGetJPeriods(cid,j.id);
+      return `<div style="border:1px solid #e0e0e0;border-radius:6px;margin-bottom:6px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:5px;padding:5px 8px;background:#f0f4ff;border-bottom:${jps.length?'1px solid #e0e0e0':'none'}">
+          <span style="flex:1;font-size:12px;font-weight:600;color:#1a73e8">🏢 ${j.name}</span>
+          <button class="cl-jdel2" data-cid="${cid}" data-jid="${j.id}" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:14px;padding:0;line-height:1">×</button>
+        </div>
+        <div style="padding:6px 8px">
+          <div style="font-size:10px;color:#888;margin-bottom:4px;font-weight:600">利用期間</div>
+          <div class="cl-jp-list" data-cid="${cid}" data-jid="${j.id}">
+            ${jps.map(p=>`<div class="cl-jp-row" style="display:flex;align-items:center;gap:3px;margin-bottom:3px;flex-wrap:wrap">
+              <input type="date" class="cl-jps" data-cid="${cid}" data-jid="${j.id}" data-pid="${p.id}" value="${p.s||''}" style="padding:2px 4px;border:1px solid #90caf9;border-radius:4px;font-size:11px;font-family:inherit;color:#222;background:#fff">
+              <span style="font-size:10px;color:#888">〜</span>
+              <input type="date" class="cl-jpe" data-cid="${cid}" data-jid="${j.id}" data-pid="${p.id}" value="${p.e||''}" style="padding:2px 4px;border:1px solid #90caf9;border-radius:4px;font-size:11px;font-family:inherit;color:#222;background:#fff">
+              <button class="cl-jp-del" data-cid="${cid}" data-jid="${j.id}" data-pid="${p.id}" style="background:none;border:none;cursor:pointer;color:#bbb;font-size:13px;padding:0;line-height:1">×</button>
+            </div>`).join('')}
+          </div>
+          <button class="cl-jp-add" data-cid="${cid}" data-jid="${j.id}" style="font-size:10px;color:#1565c0;background:none;border:1px dashed #90caf9;border-radius:4px;padding:2px 7px;cursor:pointer;width:100%;margin-top:2px">＋ 利用期間を追加</button>
+        </div>
+      </div>`;
+    }).join('')}</div>
     ${masterList.length>0?`<div style="display:flex;gap:4px;margin-top:6px;align-items:center">
       <select id="clSelJ" style="flex:1;padding:5px 7px;border:1px solid #ccc;border-radius:5px;font-size:12px;font-family:inherit;background:#fff;color:#222">
         <option value="">── 事業所を選択 ──</option>
@@ -1622,6 +1676,22 @@ function clRI(){
     if(!confirm(clGetJ(this.dataset.cid).find(j=>j.id===this.dataset.jid)?.name+'を削除しますか？'))return;
     clDelJ(this.dataset.cid,this.dataset.jid);clRI();clRY();clRU();
   }));
+  // 利用期間イベント
+  el.querySelectorAll('.cl-jps,.cl-jpe').forEach(inp=>inp.addEventListener('change',function(){
+    const w=this.closest('.cl-jp-row');
+    const s=w.querySelector('.cl-jps').value;
+    const e=w.querySelector('.cl-jpe').value;
+    clUpdJPeriod(this.dataset.cid,this.dataset.jid,this.dataset.pid,s,e);
+    clRY();clRU();
+  }));
+  el.querySelectorAll('.cl-jp-del').forEach(b=>b.addEventListener('click',function(){
+    clDelJPeriod(this.dataset.cid,this.dataset.jid,this.dataset.pid);
+    clRI();clRY();clRU();
+  }));
+  el.querySelectorAll('.cl-jp-add').forEach(b=>b.addEventListener('click',function(){
+    clAddJPeriod(this.dataset.cid,this.dataset.jid);
+    clRI();clRY();clRU();
+  }));
   const addJBtn=document.getElementById('clAddJ');
   if(addJBtn)addJBtn.addEventListener('click',()=>{
     const sel=document.getElementById('clSelJ');if(!sel)return;
@@ -1651,6 +1721,7 @@ function clRY(){
       // 当月の未チェック数（手動チェックのみ）
       let unc=0;
       jList.forEach(j=>{
+        if(!clJActive(String(c.id),j.id,y,clM))return; // 非アクティブ期間はスキップ
         CL_JD.forEach(d=>{
           if(!clGC(String(c.id),j.id,d.key,clM,y))unc++;
         });
@@ -1716,11 +1787,11 @@ function clRY(){
       h+=`<tr><td class="cl-ys" style="font-size:11px;color:#444">${doc.label}</td>`;
       CL_F.forEach(m=>{
         const fy=clFYOf(m,y);
-        const inPeriod=(doc.hasJ&&clInJittai(cid,fy,m))||(doc.hasP&&clInP(cid,fy,m));
-        const ok=clGC(cid,j.id,doc.key,m,fy);
+        const active=clJActive(cid,j.id,fy,m);
+        const ok=active&&clGC(cid,j.id,doc.key,m,fy);
         const isCur=m===clM;
-        // 青=チェック済、水色=期間内未チェック、グレー=期間外未チェック
-        const dc=ok?'cl-yok':(inPeriod?'cl-yau':'cl-yem');
+        // 青=チェック済、グレー=未チェックor非アクティブ期間、薄グレー=非アクティブ
+        const dc=!active?'cl-yem':ok?'cl-yok':'cl-yem';
         h+=`<td style="padding:2px;${isCur?'background:#f0f7ff':''}"><div class="cl-yd ${dc}${isCur?' cl-ycm':''}"></div></td>`;
       });
       h+=`</tr>`;
@@ -1768,6 +1839,7 @@ function clRU(){
     const cid=String(c.id);
     const jList=clGetJ(cid);
     for(const j of jList){
+      if(!clJActive(cid,j.id,y,m))continue; // 非アクティブ期間はスキップ
       for(const d of CL_JD){
         if(!clGC(cid,j.id,d.key,m,y))return true;
       }
@@ -1808,7 +1880,8 @@ function clXL(){
           const fy=clFYOf(m,y);
           const autoJ=doc.hasJ&&clInJittai(cid,fy,m);
           const autoP=doc.hasP&&clInP(cid,fy,m);
-          row.push(clGC(cid,j.id,doc.key,m,fy)?'✓':'');
+          if(!clJActive(cid,j.id,fy,m)){row.push('-');}
+          else row.push(clGC(cid,j.id,doc.key,m,fy)?'✓':'');
         });
         rows.push(row);
       });
