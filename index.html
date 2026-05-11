@@ -757,6 +757,7 @@ function rCmTabs(){
   el.innerHTML=(S.cms||[]).map((cm,i)=>`<div class="cm-tab${i===S.curCM?' active':''}" data-i="${i}" style="${i===S.curCM?'background:'+cbg(i)+';color:'+cc(i)+';border-color:'+cc(i)+';font-weight:700':''}">${cm.name}CM</div>`).join('');
   el.querySelectorAll('.cm-tab').forEach(t=>t.addEventListener('click',()=>{
     S.curCM=+t.dataset.i;selCl.clear();rChips();rClientDrop('');rCmTabs();rTL('allTL',null,'all');
+    attRender(); // CM切替で出勤簿を更新
   }));
 }
 
@@ -2060,23 +2061,27 @@ function attAutoCheck(dateStr){
   // dateStr: 'YYYY/MM/DD' → 'YYYY-MM-DD'
   const key=dateStr.replace(/\//g,'-');
   const cmIdx=S.curCM;
-  // 入力日付が属する期間を判定（offset=0: 当期、それ以外も含む）
-  const d=new Date(key);
-  // この日付が何期に属するか求める
-  const d21=new Date(d.getFullYear(),d.getMonth(),21);
-  const belongsToNext=d>=d21; // 21日以降なら翌月20日締め期間
-  const today=new Date();
-  const todayBase=today.getDate()>=21?today.getMonth()+1:today.getMonth();
-  const dBase=belongsToNext?d.getMonth()+1:d.getMonth();
-  const dOffset=dBase-todayBase+(d.getFullYear()-today.getFullYear())*12;
-  const {start,end}=attPeriod(dOffset);
-  if(d>=start&&d<=end){
-    if(!attData[cmIdx])attData[cmIdx]={};
-    if(!attData[cmIdx][key]){
-      attData[cmIdx][key]=true;
-      attSave();
-      attRender();
+  // 期間チェックなし：入力日付を問わずそのケアマネの出勤として記録
+  if(!attData[cmIdx])attData[cmIdx]={};
+  if(!attData[cmIdx][key]){
+    attData[cmIdx][key]=true;
+    attSave();
+    // 表示中の期間を入力日付に自動切替
+    const d=new Date(key);
+    const today=new Date();
+    const d21=new Date(d.getFullYear(),d.getMonth(),21);
+    const belongsToNext=d>=d21;
+    const todayBase=today.getDate()>=21?today.getMonth()+1:today.getMonth();
+    const dBase=belongsToNext?d.getMonth()+1:d.getMonth();
+    const newOffset=dBase-todayBase+(d.getFullYear()-today.getFullYear())*12;
+    // 表示期間が変わる場合は切替
+    if(newOffset!==attOffset){
+      attOffset=newOffset;
+      // セレクタを更新
+      const sel=document.getElementById('attMonthSel');
+      if(sel){sel.value=String(attOffset);}
     }
+    attRender();
   }
 }
 
