@@ -749,7 +749,7 @@ function renderAll(){
   rTL('allTL',null,filterAct);rFilterBar();
   const pg=document.querySelector('.nav-tab.active')?.dataset?.p;
   if(pg==='pSettings')rSettings();
-  if(pg==='pStats'){initMonthSel();rStatsCmBtns();rStats();}
+  if(pg==='pStats'){initMonthSel();rStatsCmBtns();rStats(document.getElementById('monthSel')?.value);}
 }
 
 function rCmTabs(){
@@ -850,7 +850,7 @@ document.getElementById('submitBtn').addEventListener('click',()=>{
   // 遡り入力した月をセレクタに追加して選択状態にする
   const submittedMonth=dateStr.replace(/\//g,'-').slice(0,7);
   initMonthSel(submittedMonth);
-  rStats();
+  rStats(submittedMonth);
 });
 
 // 日付・時刻の初期値
@@ -917,6 +917,7 @@ function initMonthSel(keepVal){
     return`<option value="${m}"${m===cur_val?' selected':''}>${y}年${+mo}月</option>`;
   }).join('');
   // onchangeを毎回再登録（innerHTML書換で失われるため）
+  sel.value=cur_val;
   sel.onchange=rStats;
   rStatsCmBtns();
 }
@@ -938,8 +939,16 @@ function rStatsCmBtns(){
   }));
 }
 
-function rStats(){
-  const ym=document.getElementById('monthSel')?.value;if(!ym)return;
+function rStats(ymArg){
+  const sel=document.getElementById('monthSel');
+  const ym=ymArg||(sel?sel.value:'')||(()=>{
+    // display:none中でもデータから月を取得
+    const ms=[...(new Set((S.entries||[]).map(e=>e.date?e.date.replace(/\//g,'-').slice(0,7):null).filter(Boolean)))].sort((a,b)=>b.localeCompare(a));
+    return ms[0]||'';
+  })();
+  if(!ym)return;
+  // selに確実に設定
+  if(sel&&sel.value!==ym){sel.value=ym;}
   const el=document.getElementById('statsContent');
   const yms=ym.replace('-','/');
   const[y,mo]=ym.split('-');
