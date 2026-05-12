@@ -354,6 +354,7 @@ textarea{min-height:52px;resize:vertical}
   </div>
 
   <div class="page" id="pAll">
+    <div class="filter-bar" id="cmFilterBar" style="margin-bottom:6px"></div>
     <div class="filter-bar" id="filterBar"></div>
     <div id="allTL"></div>
   </div>
@@ -680,7 +681,7 @@ let S={
   })()
 };
 let selActs=new Set(),selPlace='',selCl=new Set();
-let filterAct='all',dropOpen=false,actClr={};
+let filterAct='all',filterCM='all',dropOpen=false,actClr={};
 let statsCmFilter='all'; // 集計ページのCMフィルター
 let saveTimer=null;
 
@@ -747,7 +748,8 @@ onValue(entriesRef, (snapshot)=>{
   } else {
     S.entries=[];
   }
-  rTL('allTL',null,filterAct);
+  const allCmIdx2=filterCM==='all'?null:+filterCM;
+  rTL('allTL',allCmIdx2,filterAct);
   initMonthSel();
   const pg=document.querySelector('.nav-tab.active')?.dataset?.p;
   if(pg==='pStats')rStats();
@@ -764,7 +766,8 @@ onValue(entriesRef, (snapshot)=>{
     S.entries=[];
   }
   // entriesが更新されたらTL・集計を更新
-  rTL('allTL',null,filterAct);
+  const allCmIdx3=filterCM==='all'?null:+filterCM;
+  rTL('allTL',allCmIdx3,filterAct);
   const pg=document.querySelector('.nav-tab.active')?.dataset?.p;
   if(pg==='pStats'){initMonthSel();rStats();}
   else{initMonthSel();}
@@ -807,7 +810,8 @@ function clById(id){return S.clients.find(c=>c.id==id);}
 
 function renderAll(){
   rCmTabs();rActBtns();rPlaceBtns();rClientDrop('');
-  rTL('allTL',null,filterAct);rFilterBar();
+  const allCmIdx=filterCM==='all'?null:+filterCM;
+  rTL('allTL',allCmIdx,filterAct);rFilterBar();
   const pg=document.querySelector('.nav-tab.active')?.dataset?.p;
   if(pg==='pSettings')rSettings();
   if(pg==='pStats'){initMonthSel();rStatsCmBtns();rStats();}
@@ -961,9 +965,33 @@ function rTL(elId,cmIdx,actFilter){
 }
 
 function rFilterBar(){
+  // CMフィルター
+  const cmEl=document.getElementById('cmFilterBar');
+  if(cmEl){
+    const cmBtns=[{v:'all',l:'全員'},...(S.cms||[]).map((cm,i)=>({v:String(i),l:cm.name+'CM'}))];
+    cmEl.innerHTML=cmBtns.map(b=>{
+      const isAll=b.v==='all';
+      const active=filterCM===b.v;
+      const col=isAll?'#444':cc(+b.v);
+      const bg=isAll?'#f0f0f0':cbg(+b.v);
+      return`<div class="f-btn${active?' active':''}" data-fcm="${b.v}" style="${active?'background:'+bg+';color:'+col+';border-color:'+col+';font-weight:700':''}">${b.l}</div>`;
+    }).join('');
+    cmEl.querySelectorAll('.f-btn').forEach(b=>b.addEventListener('click',()=>{
+      filterCM=b.dataset.fcm;
+      rFilterBar();
+      const cmIdx=filterCM==='all'?null:+filterCM;
+      rTL('allTL',cmIdx,filterAct);
+    }));
+  }
+  // 業務種別フィルター
   const el=document.getElementById('filterBar');
   el.innerHTML=[{v:'all',l:'全業務'},...(S.acts||[]).map(a=>({v:a,l:a}))].map(x=>`<div class="f-btn${filterAct===x.v?' active':''}" data-f="${x.v}">${x.l}</div>`).join('');
-  el.querySelectorAll('.f-btn').forEach(b=>b.addEventListener('click',()=>{filterAct=b.dataset.f;rFilterBar();rTL('allTL',null,filterAct);}));
+  el.querySelectorAll('.f-btn').forEach(b=>b.addEventListener('click',()=>{
+    filterAct=b.dataset.f;
+    rFilterBar();
+    const cmIdx=filterCM==='all'?null:+filterCM;
+    rTL('allTL',cmIdx,filterAct);
+  }));
 }
 
 function initMonthSel(keepVal){
@@ -1376,7 +1404,7 @@ document.querySelectorAll('.nav-tab').forEach(t=>t.addEventListener('click',()=>
   document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   t.classList.add('active');document.getElementById(t.dataset.p).classList.add('active');
-  if(t.dataset.p==='pAll')rTL('allTL',null,filterAct);
+  if(t.dataset.p==='pAll'){const ci=filterCM==='all'?null:+filterCM;rTL('allTL',ci,filterAct);}
   if(t.dataset.p==='pStats'){initMonthSel();rStats();}
   if(t.dataset.p==='pSettings')rSettings();
   if(t.dataset.p==='pChecklist'){
