@@ -668,7 +668,7 @@ let S={
   acts:['居宅訪問','電話対応','担当者会議','サービス調整','アセスメント','書類作成','受診同行','内部会議'],
   places:['事業所','自宅','病院','施設','電話'],
   entries:[],
-  curCM:0
+  curCM:parseInt(localStorage.getItem('curCM')||'0') // 端末ごとに記憶
 };
 let selActs=new Set(),selPlace='',selCl=new Set();
 let filterAct='all',dropOpen=false,actClr={};
@@ -706,7 +706,9 @@ onValue(dbRef, (snapshot)=>{
     if(!S.cms||!S.cms.length)S.cms=[{name:'山田'},{name:'田中'},{name:'佐藤'}];
     if(!S.acts||!S.acts.length)S.acts=['居宅訪問','電話対応','担当者会議','サービス調整','アセスメント','書類作成','受診同行','内部会議'];
     if(!S.places||!S.places.length)S.places=['事業所','自宅','病院','施設','電話'];
-    if(S.curCM==null)S.curCM=0;
+    // curCMはlocalStorageから復元（Firebaseで上書きしない）
+    const savedCM=parseInt(localStorage.getItem('curCM')||'0');
+    if(S.curCM==null||isNaN(S.curCM))S.curCM=savedCM;
     if(S._clientsResetVersion !== RESET_CLIENTS_VERSION){
       S.clients=[];
       S._clientsResetVersion=RESET_CLIENTS_VERSION;
@@ -763,8 +765,8 @@ function saveSettings(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>{
     setSyncBar('保存中...','syncing');
-    // entriesを除いた設定データのみ書き込む
-    const {entries, ...settings}=S;
+    // entries・curCMを除いた設定データのみ書き込む（curCMは各端末ローカルで管理）
+    const {entries, curCM, ...settings}=S;
     set(dbRef, settings).then(()=>{
       setBadge('●同期済',true);
       setSyncBar('リアルタイム同期中','');
@@ -805,7 +807,9 @@ function rCmTabs(){
   const el=document.getElementById('cmTabs');
   el.innerHTML=(S.cms||[]).map((cm,i)=>`<div class="cm-tab${i===S.curCM?' active':''}" data-i="${i}" style="${i===S.curCM?'background:'+cbg(i)+';color:'+cc(i)+';border-color:'+cc(i)+';font-weight:700':''}">${cm.name}CM</div>`).join('');
   el.querySelectorAll('.cm-tab').forEach(t=>t.addEventListener('click',()=>{
-    S.curCM=+t.dataset.i;selCl.clear();rChips();rClientDrop('');rCmTabs();rTL('allTL',null,'all');
+    S.curCM=+t.dataset.i;
+    localStorage.setItem('curCM',S.curCM); // 端末ごとに記憶
+    selCl.clear();rChips();rClientDrop('');rCmTabs();rTL('allTL',null,'all');
     attRender(); // CM切替で出勤簿を更新
   }));
 }
@@ -1985,6 +1989,7 @@ function clRenderSysHeader(){
     ).join('');
     ct.querySelectorAll('.cm-tab').forEach(t=>t.addEventListener('click',()=>{
       S.curCM=+t.dataset.ci;
+      localStorage.setItem('curCM',S.curCM);
       clCid=null;
       const sel=document.getElementById('clCS');if(sel)sel.value='';
       clRenderSysHeader();clRCS();clRI();clRY();clRU();
