@@ -493,7 +493,7 @@ textarea{min-height:52px;resize:vertical}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
-import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-database.js";
+import { getDatabase, ref, onValue, set, get, remove, update } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -510,6 +510,7 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getDatabase(fbApp);
 const dbRef = ref(db, 'diary');
+const entriesRef = ref(db, 'diary/entries');
 const allowedEmailsRef = ref(db, 'diary/allowedEmails');
 const auth = getAuth(fbApp);
 
@@ -667,13 +668,21 @@ let S={
   acts:['居宅訪問','電話対応','担当者会議','サービス調整','アセスメント','書類作成','受診同行','内部会議'],
   places:['事業所','自宅','病院','施設','電話'],
   entries:[],
-  curCM:0
+  curCM:(()=>{
+    // URLパラメータ ?cm=0 優先 → localStorage → デフォルト0
+    const urlCM=new URLSearchParams(window.location.search).get('cm');
+    if(urlCM!==null&&!isNaN(parseInt(urlCM))){
+      const v=parseInt(urlCM);
+      localStorage.setItem('curCM',v);
+      return v;
+    }
+    return parseInt(localStorage.getItem('curCM')||'0');
+  })()
 };
 let selActs=new Set(),selPlace='',selCl=new Set();
 let filterAct='all',dropOpen=false,actClr={};
 let statsCmFilter='all'; // 集計ページのCMフィルター
 let saveTimer=null;
-let isSaving=false; // 保存中フラグ（Firebase上書き防止）
 
 function setSyncBar(msg,cls){
   const b=document.getElementById('syncBar');
@@ -695,35 +704,27 @@ function startDbListener(){
   setSyncBar('Firebase接続中...','syncing');
   attStartListener();
 
+// 設定データ（cms/clients/acts/places等）のリスナー
+// 設定データリスナー（entries以外）
 onValue(dbRef, (snapshot)=>{
   const data=snapshot.val();
   if(data){
-    if(isSaving){
-      // 保存中はFirebaseの古いデータでSを上書きしない
-      // entriesだけは保護し、他のフィールドは更新する
-      const savedEntries=S.entries?[...S.entries]:[];
-      Object.assign(S,data);
-      // 保存中に追加したエントリを復元（Firebaseにまだない分）
-      if(data.entries){
-        const fbIds=new Set((data.entries||[]).map(e=>String(e.id)));
-        const newEntries=savedEntries.filter(e=>!fbIds.has(String(e.id)));
-        if(newEntries.length>0)S.entries=[...newEntries,...(data.entries||[])];
-      } else {
-        S.entries=savedEntries;
-      }
-    } else {
-      Object.assign(S,data);
-    }
+    const {entries,...rest}=data;
+    Object.assign(S,rest);
     if(!S.cms||!S.cms.length)S.cms=[{name:'山田'},{name:'田中'},{name:'佐藤'}];
     if(!S.acts||!S.acts.length)S.acts=['居宅訪問','電話対応','担当者会議','サービス調整','アセスメント','書類作成','受診同行','内部会議'];
     if(!S.places||!S.places.length)S.places=['事業所','自宅','病院','施設','電話'];
-    if(!S.entries)S.entries=[];
-    if(S.curCM==null)S.curCM=0;
-    // 利用者リセット：まだこのバージョンでリセットしていなければ強制クリア
+    // curCMはURLパラメータ優先→localStorage
+    const urlCM2=new URLSearchParams(window.location.search).get('cm');
+    if(urlCM2!==null&&!isNaN(parseInt(urlCM2))){
+      S.curCM=parseInt(urlCM2);
+    } else {
+      S.curCM=parseInt(localStorage.getItem('curCM')||'0');
+    }
     if(S._clientsResetVersion !== RESET_CLIENTS_VERSION){
       S.clients=[];
       S._clientsResetVersion=RESET_CLIENTS_VERSION;
-      set(dbRef, S); // 即座にFirebaseにも反映
+      saveSettings();
     }
     if(!S.clients)S.clients=[];
     if(!S.jigyoshoMaster)S.jigyoshoMaster=[];
@@ -735,23 +736,64 @@ onValue(dbRef, (snapshot)=>{
   setSyncBar('接続エラー: '+err.message,'error');
   setBadge('●オフライン',false);
 });
+
+// entriesリスナー（同時入力の衝突を防ぐため個別ノードで管理）
+onValue(entriesRef, (snapshot)=>{
+  const data=snapshot.val();
+  if(data && typeof data==='object' && !Array.isArray(data)){
+    S.entries=Object.values(data)
+      .filter(e=>e&&e.id&&e.date)
+      .sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.id).localeCompare(String(a.id)));
+  } else {
+    S.entries=[];
+  }
+  rTL('allTL',null,filterAct);
+  initMonthSel();
+  const pg=document.querySelector('.nav-tab.active')?.dataset?.p;
+  if(pg==='pStats')rStats();
+  attRender();
+});
+
+// entriesは個別ノードで管理（同時入力の衝突を防ぐ）
+onValue(entriesRef, (snapshot)=>{
+  const data=snapshot.val();
+  if(data){
+    // Firebase objectをarrayに変換して降順ソート
+    S.entries=Object.values(data).sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.id).localeCompare(String(a.id)));
+  } else {
+    S.entries=[];
+  }
+  // entriesが更新されたらTL・集計を更新
+  rTL('allTL',null,filterAct);
+  const pg=document.querySelector('.nav-tab.active')?.dataset?.p;
+  if(pg==='pStats'){initMonthSel();rStats();}
+  else{initMonthSel();}
+  attRender();
+});
 } // end startDbListener
 
-function save(){
+// 設定データのみ保存（entriesを除外）
+function save(){saveSettings();}
+function saveSettings(){
   clearTimeout(saveTimer);
-  isSaving=true; // 保存開始フラグ
   saveTimer=setTimeout(()=>{
     setSyncBar('保存中...','syncing');
-    set(dbRef, S).then(()=>{
-      isSaving=false; // 保存完了
+    const {entries,...settings}=S;
+    set(dbRef,settings).then(()=>{
       setBadge('●同期済',true);
       setSyncBar('リアルタイム同期中','');
     }).catch(e=>{
-      isSaving=false; // エラー時も解除
       setBadge('●保存失敗',false);
       setSyncBar('保存エラー: '+e.message,'error');
     });
   },600);
+}
+// エントリを個別ノードに保存（他ユーザーと衝突しない）
+function saveEntry(entry){
+  return set(ref(db,'diary/entries/'+entry.id),entry);
+}
+function deleteEntry(id){
+  return remove(ref(db,'diary/entries/'+id));
 }
 
 function pad(n){return String(n).padStart(2,'0');}
@@ -775,7 +817,13 @@ function rCmTabs(){
   const el=document.getElementById('cmTabs');
   el.innerHTML=(S.cms||[]).map((cm,i)=>`<div class="cm-tab${i===S.curCM?' active':''}" data-i="${i}" style="${i===S.curCM?'background:'+cbg(i)+';color:'+cc(i)+';border-color:'+cc(i)+';font-weight:700':''}">${cm.name}CM</div>`).join('');
   el.querySelectorAll('.cm-tab').forEach(t=>t.addEventListener('click',()=>{
-    S.curCM=+t.dataset.i;selCl.clear();rChips();rClientDrop('');rCmTabs();rTL('allTL',null,'all');
+    S.curCM=+t.dataset.i;
+    localStorage.setItem('curCM',S.curCM);
+    // URLを更新（ページ遷移なし・ブックマーク可能）
+    const url=new URL(window.location);
+    url.searchParams.set('cm',S.curCM);
+    window.history.replaceState({},'',url);
+    selCl.clear();rChips();rClientDrop('');rCmTabs();rTL('allTL',null,'all');
     attRender(); // CM切替で出勤簿を更新
   }));
 }
@@ -855,9 +903,10 @@ document.getElementById('submitBtn').addEventListener('click',()=>{
   if(!S.entries)S.entries=[];
   const dv=document.getElementById('entryDate').value;
   const dateStr=dv?dv.replace(/-/g,'/'):todayStr();
-  S.entries.unshift({id:Date.now(),cmIdx:S.curCM,acts:[...selActs],clientIds:[...selCl],timeFrom:tf||nowT(),timeTo:tt,place:selPlace,memo:document.getElementById('memo').value.trim(),date:dateStr});
-  save();
-  attAutoCheck(dateStr); // 出勤を自動チェック
+  const newEntry={id:Date.now(),cmIdx:S.curCM,acts:[...selActs],clientIds:[...selCl],timeFrom:tf||nowT(),timeTo:tt,place:selPlace,memo:document.getElementById('memo').value.trim(),date:dateStr};
+  S.entries.unshift(newEntry);
+  saveEntry(newEntry);
+  attAutoCheck(dateStr);
   document.getElementById('memo').value='';
   document.getElementById('entryDate').value=todayValue();
   document.getElementById('tFrom').value=nowT();
@@ -865,11 +914,11 @@ document.getElementById('submitBtn').addEventListener('click',()=>{
   document.getElementById('cSearch').value='';
   selActs.clear();selPlace='';selCl.clear();
   rActBtns();rPlaceBtns();rChips();rClientDrop('');
-  rTL('allTL',null,filterAct);
-  // 遡り入力した月をセレクタに追加して選択状態にする
+  // ローカルに即反映（Firebaseリスナーでも自動更新される）
   const submittedMonth=dateStr.replace(/\//g,'-').slice(0,7);
+  rTL('allTL',null,filterAct);
   initMonthSel(submittedMonth);
-  rStats();
+  rStats(submittedMonth);
 });
 
 // 日付・時刻の初期値
@@ -907,7 +956,7 @@ function rTL(elId,cmIdx,actFilter){
   }).join('');
   el.querySelectorAll('.del-btn').forEach(b=>b.addEventListener('click',()=>{
     if(!confirm('この記録を削除しますか？'))return;
-    S.entries=S.entries.filter(e=>e.id!=b.dataset.id);save();rTL(elId,cmIdx,actFilter);rStats();
+    S.entries=S.entries.filter(e=>e.id!=b.dataset.id);deleteEntry(b.dataset.id);rTL(elId,cmIdx,actFilter);rStats();
   }));
 }
 
@@ -1954,6 +2003,7 @@ function clRenderSysHeader(){
     ).join('');
     ct.querySelectorAll('.cm-tab').forEach(t=>t.addEventListener('click',()=>{
       S.curCM=+t.dataset.ci;
+      localStorage.setItem('curCM',S.curCM);
       clCid=null;
       const sel=document.getElementById('clCS');if(sel)sel.value='';
       clRenderSysHeader();clRCS();clRI();clRY();clRU();
