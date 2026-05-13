@@ -543,6 +543,7 @@ function showLoginScreen(deniedMsg=''){
   // 書類チェック：保存タイマーをキャンセルしてからリセット（空データの書き込みを防ぐ）
   clearTimeout(clTm);
   clOK=false;
+  clLoaded=false;
   clData={};
   clCid=null;
 }
@@ -786,7 +787,7 @@ function saveSettings(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>{
     setSyncBar('保存中...','syncing');
-    const {entries,...settings}=S;
+    const {entries,checklist2,attendance,allowedEmails,...settings}=S;
     set(dbRef,settings).then(()=>{
       setBadge('●同期済',true);
       setSyncBar('リアルタイム同期中','');
@@ -1436,11 +1437,11 @@ const CL_FD=[
 ];
 
 let clData={}, clY=clFY0(), clM=new Date().getMonth()+1;
-let clCid=null, clTm=null, clOK=false;
+let clCid=null, clTm=null, clOK=false, clLoaded=false;
 
 function clFY0(){const d=new Date();return d.getMonth()>=3?d.getFullYear():d.getFullYear()-1;}
 function clUID(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
-function clSv(){clearTimeout(clTm);clTm=setTimeout(()=>set(ref(db,CL_PATH),clData||{}).catch(e=>console.error(e)),700);}
+function clSv(){if(!clLoaded)return;clearTimeout(clTm);clTm=setTimeout(()=>set(ref(db,CL_PATH),clData||{}).catch(e=>console.error(e)),700);}
 
 // ── データアクセサ ──
 function clD(cid){if(!clData[cid])clData[cid]={};return clData[cid];}
@@ -1619,7 +1620,7 @@ function clMyC(){return(S.clients||[]).filter(c=>!c.inactive&&String(c.cmIdx)===
 function clInit(){
   if(!clOK){
     clOK=true;
-    onValue(ref(db,CL_PATH),sn=>{clData=sn.val()||{};clRA();});
+    onValue(ref(db,CL_PATH),sn=>{clLoaded=true;clData=sn.val()||{};clRA();});
     clInitSels();
     // onchangeで上書き（重複登録しない）
     const csEl=document.getElementById('clCS');
