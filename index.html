@@ -540,9 +540,11 @@ function showLoginScreen(deniedMsg=''){
   const dm=document.getElementById('accessDeniedMsg');
   dm.style.display=deniedMsg?'':'none';
   dbListenerStarted=false;
-  clOK=false;   // 書類チェックリスナーもリセット（再ログイン時に再接続）
-  clData={};    // チェックデータをクリア（古いデータで上書きしないよう）
-  clCid=null;   // 選択中の利用者もリセット
+  // 書類チェック：保存タイマーをキャンセルしてからリセット（空データの書き込みを防ぐ）
+  clearTimeout(clTm);
+  clOK=false;
+  clData={};
+  clCid=null;
 }
 
 onAuthStateChanged(auth, async user => {
@@ -1619,12 +1621,16 @@ function clInit(){
     clOK=true;
     onValue(ref(db,CL_PATH),sn=>{clData=sn.val()||{};clRA();});
     clInitSels();
-    document.getElementById('clCS').addEventListener('change',function(){clCid=this.value||null;clRI();clRY();});
-    document.getElementById('clXBtn').addEventListener('click',clXL);
-    document.getElementById('clBackBtn')?.addEventListener('click',()=>{
+    // onchangeで上書き（重複登録しない）
+    const csEl=document.getElementById('clCS');
+    if(csEl)csEl.onchange=function(){clCid=this.value||null;clRI();clRY();};
+    const xBtn=document.getElementById('clXBtn');
+    if(xBtn)xBtn.onclick=clXL;
+    const backBtn=document.getElementById('clBackBtn');
+    if(backBtn)backBtn.onclick=()=>{
       document.getElementById('pChecklist').classList.remove('active');
       document.querySelector('.nav-tab[data-p="pInput"]')?.click();
-    });
+    };
   }
   clRenderSysHeader();clRCS();clRA();
 }
@@ -1632,6 +1638,8 @@ function clInit(){
 function clInitSels(){
   const yEl=document.getElementById('clYSel');
   const mEl=document.getElementById('clMSel');
+  // 重複追加を防ぐためクリア
+  yEl.innerHTML='';
   const ny=clFY0();
   for(let y=ny-2;y<=ny+1;y++){
     const o=document.createElement('option');
@@ -1639,8 +1647,9 @@ function clInitSels(){
     yEl.appendChild(o);
   }
   mEl.innerHTML=CL_F.map(m=>`<option value="${m}"${m===clM?' selected':''}>${m}月</option>`).join('');
-  yEl.addEventListener('change',()=>{clY=+yEl.value;clRY();clRU();});
-  mEl.addEventListener('change',()=>{clM=+mEl.value;clRI();clRY();clRU();});
+  // onchangeで上書き（重複登録しない）
+  yEl.onchange=()=>{clY=+yEl.value;clRY();clRU();};
+  mEl.onchange=()=>{clM=+mEl.value;clRI();clRY();clRU();};
 }
 
 function clRCS(){
