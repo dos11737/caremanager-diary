@@ -539,6 +539,10 @@ function showLoginScreen(deniedMsg=''){
   document.getElementById('registerForm').style.display='none';
   const dm=document.getElementById('accessDeniedMsg');
   dm.style.display=deniedMsg?'':'none';
+  // 全Firebaseリスナーを解除（ログアウト時の蓄積防止）
+  dbUnsubscribers.forEach(fn=>fn());
+  dbUnsubscribers=[];
+  attListenerOK=false;
   dbListenerStarted=false;
   // 書類チェック：保存タイマーをキャンセルしてからリセット（空データの書き込みを防ぐ）
   clearTimeout(clTm);
@@ -704,6 +708,7 @@ function setBadge(t,ok){
 // Firebase リアルタイム同期
 const RESET_CLIENTS_VERSION = 'reset_v1';
 let dbListenerStarted=false;
+let dbUnsubscribers=[];
 
 function startDbListener(){
   if(dbListenerStarted)return;
@@ -711,9 +716,16 @@ function startDbListener(){
   setSyncBar('Firebase接続中...','syncing');
   attStartListener();
 
+// 書類チェックリスナーをログイン時に開始（タブを開く前にデータをロード）
+if(!clOK){
+  clOK=true;
+  clUnsubscribe=onValue(ref(db,CL_PATH),sn=>{clLoaded=true;clData=sn.val()||{};clRA();});
+  dbUnsubscribers.push(clUnsubscribe);
+}
+
 // 設定データ（cms/clients/acts/places等）のリスナー
 // 設定データリスナー（entries以外）
-onValue(dbRef, (snapshot)=>{
+const _u1=onValue(dbRef, (snapshot)=>{
   const data=snapshot.val();
   if(data){
     const {entries,...rest}=data;
@@ -743,9 +755,10 @@ onValue(dbRef, (snapshot)=>{
   setSyncBar('接続エラー: '+err.message,'error');
   setBadge('●オフライン',false);
 });
+dbUnsubscribers.push(_u1);
 
 // entriesリスナー（同時入力の衝突を防ぐため個別ノードで管理）
-onValue(entriesRef, (snapshot)=>{
+const _u2=onValue(entriesRef, (snapshot)=>{
   const data=snapshot.val();
   if(data && typeof data==='object' && !Array.isArray(data)){
     S.entries=Object.values(data)
@@ -761,9 +774,10 @@ onValue(entriesRef, (snapshot)=>{
   if(pg==='pStats')rStats();
   attRender();
 });
+dbUnsubscribers.push(_u2);
 
 // entriesは個別ノードで管理（同時入力の衝突を防ぐ）
-onValue(entriesRef, (snapshot)=>{
+const _u3=onValue(entriesRef, (snapshot)=>{
   const data=snapshot.val();
   if(data){
     // Firebase objectをarrayに変換して降順ソート
@@ -779,6 +793,7 @@ onValue(entriesRef, (snapshot)=>{
   else{initMonthSel();}
   attRender();
 });
+dbUnsubscribers.push(_u3);
 } // end startDbListener
 
 // 設定データのみ保存（entriesを除外）
@@ -1437,7 +1452,7 @@ const CL_FD=[
 ];
 
 let clData={}, clY=clFY0(), clM=new Date().getMonth()+1;
-let clCid=null, clTm=null, clOK=false, clLoaded=false;
+let clCid=null, clTm=null, clOK=false, clLoaded=false, clUnsubscribe=null;
 
 function clFY0(){const d=new Date();return d.getMonth()>=3?d.getFullYear():d.getFullYear()-1;}
 function clUID(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
@@ -1619,8 +1634,8 @@ function clMyC(){return(S.clients||[]).filter(c=>!c.inactive&&String(c.cmIdx)===
 // ── 初期化 ──
 function clInit(){
   if(!clOK){
+    // リスナーはstartDbListenerで登録済み。UI初期化のみ行う
     clOK=true;
-    onValue(ref(db,CL_PATH),sn=>{clLoaded=true;clData=sn.val()||{};clRA();});
     clInitSels();
     // onchangeで上書き（重複登録しない）
     const csEl=document.getElementById('clCS');
@@ -2214,13 +2229,15 @@ function attAutoCheck(dateStr){
 }
 
 // Firebaseリスナー開始
+let attUnsubscribe=null;
 function attStartListener(){
   if(attListenerOK)return;
   attListenerOK=true;
-  onValue(ref(db,ATT_PATH),sn=>{
+  const _ua=onValue(ref(db,ATT_PATH),sn=>{
     attData=sn.val()||{};
     attRender();
   });
+  dbUnsubscribers.push(_ua);
 }
 
 // Excel出力（20日締め出勤簿）
