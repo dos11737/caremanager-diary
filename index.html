@@ -540,6 +540,9 @@ function showLoginScreen(deniedMsg=''){
   const dm=document.getElementById('accessDeniedMsg');
   dm.style.display=deniedMsg?'':'none';
   dbListenerStarted=false;
+  clOK=false;   // 書類チェックリスナーもリセット（再ログイン時に再接続）
+  clData={};    // チェックデータをクリア（古いデータで上書きしないよう）
+  clCid=null;   // 選択中の利用者もリセット
 }
 
 onAuthStateChanged(auth, async user => {
