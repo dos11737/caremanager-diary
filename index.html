@@ -1637,7 +1637,7 @@ function clInitSels(){
   }
   mEl.innerHTML=CL_F.map(m=>`<option value="${m}"${m===clM?' selected':''}>${m}月</option>`).join('');
   yEl.addEventListener('change',()=>{clY=+yEl.value;clRY();clRU();});
-  mEl.addEventListener('change',()=>{clM=+mEl.value;clRY();clRU();});
+  mEl.addEventListener('change',()=>{clM=+mEl.value;clRI();clRY();clRU();});
 }
 
 function clRCS(){
@@ -1904,8 +1904,9 @@ function clRY(){
         const active=clJActive(cid,j.id,fy,m);
         const ok=active&&clGC(cid,j.id,doc.key,m,fy);
         const isCur=m===clM;
-        // 青=チェック済、グレー=未チェックor非アクティブ期間、薄グレー=非アクティブ
-        const dc=!active?'cl-yem':ok?'cl-yok':'cl-yem';
+        // ケアプラン期間内は水色（チェック済みは青、非アクティブはグレー）
+        const inCpPeriod=doc.hasP&&clInP(cid,fy,m);
+        const dc=!active?'cl-yem':ok?'cl-yok':(inCpPeriod?'cl-yau':'cl-yem');
         h+=`<td style="padding:2px;${isCur?'background:#f0f7ff':''}"><div class="cl-yd ${dc}${isCur?' cl-ycm':''}"></div></td>`;
       });
       h+=`</tr>`;
