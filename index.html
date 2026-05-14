@@ -551,6 +551,8 @@ function showLoginScreen(deniedMsg=''){
   clLoaded=false;
   clData={};
   clCid=null;
+  // S.checklist2もリセット（再ログイン時に古いデータが混入しないよう）
+  if(S.checklist2!==undefined)delete S.checklist2;
 }
 
 onAuthStateChanged(auth, async user => {
@@ -1647,6 +1649,11 @@ function clInit(){
       document.getElementById('pChecklist').classList.remove('active');
       document.querySelector('.nav-tab[data-p="pInput"]')?.click();
     };
+  }
+  // onValue(CL_PATH)未発火の場合、S.checklist2（onValue(dbRef)取得済）で即時表示
+  if(!clLoaded && S.checklist2 && typeof S.checklist2==='object'){
+    clData=S.checklist2;
+    clLoaded=true;
   }
   clRenderSysHeader();clRCS();clRA();
 }
