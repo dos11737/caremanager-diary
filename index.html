@@ -542,6 +542,7 @@ function showLoginScreen(deniedMsg=''){
   // 全Firebaseリスナーを解除（ログアウト時の蓄積防止）
   dbUnsubscribers.forEach(fn=>fn());
   dbUnsubscribers=[];
+  clUnsubscribe=null;
   attListenerOK=false;
   dbListenerStarted=false;
   // 書類チェック：保存タイマーをキャンセルしてからリセット（空データの書き込みを防ぐ）
@@ -717,8 +718,8 @@ function startDbListener(){
   attStartListener();
 
 // 書類チェックリスナーをログイン時に開始（タブを開く前にデータをロード）
-if(!clOK){
-  clOK=true;
+// clOKはUI初期化用のフラグなので触らない（clUnsubscribeでリスナー登録を管理）
+if(!clUnsubscribe){
   clUnsubscribe=onValue(ref(db,CL_PATH),sn=>{clLoaded=true;clData=sn.val()||{};clRA();});
   dbUnsubscribers.push(clUnsubscribe);
 }
@@ -1634,7 +1635,6 @@ function clMyC(){return(S.clients||[]).filter(c=>!c.inactive&&String(c.cmIdx)===
 // ── 初期化 ──
 function clInit(){
   if(!clOK){
-    // リスナーはstartDbListenerで登録済み。UI初期化のみ行う
     clOK=true;
     clInitSels();
     // onchangeで上書き（重複登録しない）
