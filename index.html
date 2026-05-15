@@ -727,7 +727,14 @@ if(!clUnsubscribe){
     const val=sn.val();
     console.log('[CL] onValue fired, val keys:', val?Object.keys(val):null);
     clLoaded=true;
-    clData=val?JSON.parse(JSON.stringify(val)):{};
+    // Firebaseキーをデコード（~→.）してclDataに格納
+    if(val){
+      const decoded={};
+      Object.keys(val).forEach(k=>{decoded[clDecKey(k)]=val[k];});
+      clData=JSON.parse(JSON.stringify(decoded));
+    } else {
+      clData={};
+    }
     clRA();
   });
   dbUnsubscribers.push(clUnsubscribe);
@@ -1470,7 +1477,13 @@ function clSv(){
   if(!clLoaded)return;
   clearTimeout(clTm);
   // スナップショットを取ってタイムアウト内でもclDataの変化に左右されないようにする
-  const _snap=JSON.parse(JSON.stringify(clData||{}));
+  const raw=JSON.parse(JSON.stringify(clData||{}));
+  // 空エントリ({})をフィルタ除去 + Firebaseキーエンコード（.→~）
+  // Firebase keyにドットは使用不可のため、cidの.を~に変換する
+  const _snap={};
+  Object.keys(raw).forEach(k=>{
+    if(raw[k]&&typeof raw[k]==='object'&&Object.keys(raw[k]).length>0)_snap[clEncKey(k)]=raw[k];
+  });
   clTm=setTimeout(()=>{
     // タイムアウト発火時に再チェック：ログアウト済みなら書き込まない
     if(!clLoaded){console.warn('[CL] clSv skip: not loaded');return;}
@@ -1481,11 +1494,18 @@ function clSv(){
   },700);
 }
 
+// ── Firebaseキーエンコード ──
+// Firebase keyはドット(.)を含めないため、cidの.を~に変換して保存する
+function clEncKey(cid){return String(cid).replace(/\./g,'~');}
+function clDecKey(k){return k.replace(/~/g,'.');}
+
 // ── データアクセサ ──
 function clD(cid){if(!clData[cid])clData[cid]={};return clData[cid];}
+// 読み取り専用アクセサ（エントリを新規生成しない）
+function clDR(cid){return clData[cid]||{};}
 
 // 事業所マスター
-function clGetJ(cid){return clD(cid).jigyosho||[];}
+function clGetJ(cid){return clDR(cid).jigyosho||[];}
 function clSetJ(cid,arr){clD(cid).jigyosho=arr;clSv();}
 function clAddJ(cid,name){
   const arr=clGetJ(cid);
@@ -1534,7 +1554,7 @@ function clJActive(cid,jid,y,m){
 
 // チェックデータ: jChecks[jid][docKey][year][month]
 function clGC(cid,jid,key,m,y){
-  const d=clD(cid);
+  const d=clDR(cid);
   if(jid==='f'){
     return !!(d.fChecks&&d.fChecks[key]&&d.fChecks[key][y]&&d.fChecks[key][y][m]);
   }
@@ -1561,7 +1581,7 @@ function clSC(cid,jid,key,m,y,v){
 
 // ケアプラン期間（事業所向け→利用者向け自動同期）
 function clGPs(cid){
-  const d=clD(cid);
+  const d=clDR(cid);
   if(d.period_j&&!d.periods){
     const o=d.period_j;
     if(o.s||o.e)d.periods=[{id:clUID(),s:o.s||'',e:o.e||''}];
@@ -1579,7 +1599,7 @@ function clDelP(cid,pid){clSPs(cid,clGPs(cid).filter(p=>p.id!==pid));}
 function clUpdP(cid,pid,s,e){const a=clGPs(cid);const p=a.find(x=>x.id===pid);if(p){p.s=s;p.e=e;}clSPs(cid,a);}
 
 // 実態把握票 交付日
-function clGJittai(cid){return clD(cid).jittaiDates||[];}
+function clGJittai(cid){return clDR(cid).jittaiDates||[];}
 function clSJittai(cid,arr){clD(cid).jittaiDates=arr;clSv();}
 
 // ── 判定 ──
@@ -1673,7 +1693,10 @@ function clInit(){
   // onValue(CL_PATH)未発火の場合、S.checklist2（onValue(dbRef)取得済）で即時表示
   if(!clLoaded && S.checklist2 && typeof S.checklist2==='object' && Object.keys(S.checklist2).length>0){
     console.log('[CL] clInit fallback from S.checklist2, keys:', Object.keys(S.checklist2));
-    clData=JSON.parse(JSON.stringify(S.checklist2));
+    // Firebaseキーをデコード（~→.）してclDataに格納
+    const decoded={};
+    Object.keys(S.checklist2).forEach(k=>{decoded[clDecKey(k)]=S.checklist2[k];});
+    clData=JSON.parse(JSON.stringify(decoded));
     clLoaded=true;
   }
   clRenderSysHeader();clRCS();clRA();
