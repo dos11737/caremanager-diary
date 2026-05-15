@@ -547,6 +547,7 @@ function showLoginScreen(deniedMsg=''){
   dbListenerStarted=false;
   // 書類チェック：保存タイマーをキャンセルしてからリセット（空データの書き込みを防ぐ）
   clearTimeout(clTm);
+  clTm=null;
   clOK=false;
   clLoaded=false;
   clData={};
@@ -722,7 +723,13 @@ function startDbListener(){
 // 書類チェックリスナーをログイン時に開始（タブを開く前にデータをロード）
 // clOKはUI初期化用のフラグなので触らない（clUnsubscribeでリスナー登録を管理）
 if(!clUnsubscribe){
-  clUnsubscribe=onValue(ref(db,CL_PATH),sn=>{clLoaded=true;clData=sn.val()||{};clRA();});
+  clUnsubscribe=onValue(ref(db,CL_PATH),sn=>{
+    const val=sn.val();
+    console.log('[CL] onValue fired, val keys:', val?Object.keys(val):null);
+    clLoaded=true;
+    clData=val?JSON.parse(JSON.stringify(val)):{};
+    clRA();
+  });
   dbUnsubscribers.push(clUnsubscribe);
 }
 
@@ -1459,7 +1466,20 @@ let clCid=null, clTm=null, clOK=false, clLoaded=false, clUnsubscribe=null;
 
 function clFY0(){const d=new Date();return d.getMonth()>=3?d.getFullYear():d.getFullYear()-1;}
 function clUID(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
-function clSv(){if(!clLoaded)return;clearTimeout(clTm);clTm=setTimeout(()=>set(ref(db,CL_PATH),clData||{}).catch(e=>console.error(e)),700);}
+function clSv(){
+  if(!clLoaded)return;
+  clearTimeout(clTm);
+  // スナップショットを取ってタイムアウト内でもclDataの変化に左右されないようにする
+  const _snap=JSON.parse(JSON.stringify(clData||{}));
+  clTm=setTimeout(()=>{
+    // タイムアウト発火時に再チェック：ログアウト済みなら書き込まない
+    if(!clLoaded){console.warn('[CL] clSv skip: not loaded');return;}
+    // 空オブジェクトをFirebaseに書き込むとノードが削除されるため必ずガード
+    if(!_snap||Object.keys(_snap).length===0){console.warn('[CL] clSv skip: empty snapshot');return;}
+    console.log('[CL] saving',Object.keys(_snap));
+    set(ref(db,CL_PATH),_snap).catch(e=>console.error('[CL] save error',e));
+  },700);
+}
 
 // ── データアクセサ ──
 function clD(cid){if(!clData[cid])clData[cid]={};return clData[cid];}
@@ -1651,8 +1671,9 @@ function clInit(){
     };
   }
   // onValue(CL_PATH)未発火の場合、S.checklist2（onValue(dbRef)取得済）で即時表示
-  if(!clLoaded && S.checklist2 && typeof S.checklist2==='object'){
-    clData=S.checklist2;
+  if(!clLoaded && S.checklist2 && typeof S.checklist2==='object' && Object.keys(S.checklist2).length>0){
+    console.log('[CL] clInit fallback from S.checklist2, keys:', Object.keys(S.checklist2));
+    clData=JSON.parse(JSON.stringify(S.checklist2));
     clLoaded=true;
   }
   clRenderSysHeader();clRCS();clRA();
