@@ -1911,7 +1911,16 @@ function clRI(){
   }));
   el.querySelectorAll('.cl-ps,.cl-pe').forEach(i=>i.addEventListener('change',function(){
     const w=this.closest('.cl-prow');
-    clUpdP(this.dataset.cid,this.dataset.pid,w.querySelector('.cl-ps').value,w.querySelector('.cl-pe').value);
+    const ps=w.querySelector('.cl-ps');
+    const pe=w.querySelector('.cl-pe');
+    // 開始日変更時、終了日が未入力なら1年後-1日を自動設定
+    if(this.classList.contains('cl-ps')&&ps.value&&!pe.value){
+      const d=new Date(ps.value);
+      d.setFullYear(d.getFullYear()+1);
+      d.setDate(d.getDate()-1);
+      pe.value=d.toISOString().split('T')[0];
+    }
+    clUpdP(this.dataset.cid,this.dataset.pid,ps.value,pe.value);
     clRI();clRY();clRU();
   }));
   el.querySelectorAll('.cl-pdel').forEach(b=>b.addEventListener('click',function(){
