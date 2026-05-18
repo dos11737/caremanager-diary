@@ -1512,7 +1512,12 @@ function clAddJ(cid,name){
   arr.push({id:clUID(),name});
   clSetJ(cid,arr);
 }
-function clDelJ(cid,jid){clSetJ(cid,clGetJ(cid).filter(j=>j.id!==jid));}
+function clDelJ(cid,jid){
+  const d=clD(cid);
+  d.jigyosho=(d.jigyosho||[]).filter(j=>j.id!==jid);
+  if(d.jChecks)delete d.jChecks[jid];
+  clSv();
+}
 
 // 事業所の利用期間 (usagePeriods: [{id, s, e}])
 function clGetJPeriods(cid,jid){
@@ -1595,8 +1600,71 @@ function clSPs(cid,arr){
   clSv();
 }
 function clAddP(cid){const a=clGPs(cid);a.push({id:clUID(),s:'',e:''});clSPs(cid,a);}
-function clDelP(cid,pid){clSPs(cid,clGPs(cid).filter(p=>p.id!==pid));}
-function clUpdP(cid,pid,s,e){const a=clGPs(cid);const p=a.find(x=>x.id===pid);if(p){p.s=s;p.e=e;}clSPs(cid,a);}
+
+// 期間内の年月リスト [{y,m},...] を返すヘルパー
+function clPeriodMonths(p){
+  if(!p||!p.s||!p.e)return[];
+  const s=p.s.replace(/-/g,'').slice(0,6);
+  const e=p.e.replace(/-/g,'').slice(0,6);
+  const sy=parseInt(s.slice(0,4)),sm=parseInt(s.slice(4,6));
+  const ey=parseInt(e.slice(0,4)),em=parseInt(e.slice(4,6));
+  const res=[];
+  let y=sy,m=sm;
+  while(y*100+m<=ey*100+em){res.push({y,m});m++;if(m>12){m=1;y++;}}
+  return res;
+}
+// checksObj(jChecks[jid] or fChecks)から指定年月のチェックを削除
+function clDelChecksForMonths(checksObj,months){
+  if(!checksObj||!months.length)return;
+  months.forEach(({y,m})=>{
+    Object.keys(checksObj).forEach(key=>{
+      if(checksObj[key]&&checksObj[key][y]){
+        delete checksObj[key][y][m];
+        if(!Object.keys(checksObj[key][y]).length)delete checksObj[key][y];
+        if(checksObj[key]&&!Object.keys(checksObj[key]).length)delete checksObj[key];
+      }
+    });
+  });
+}
+// いずれかの期間に含まれるかチェック
+function clYMInPeriods(y,m,periods){
+  const ym=y*100+m;
+  return periods.some(p=>{
+    if(!p.s||!p.e)return false;
+    const ps=parseInt(p.s.replace(/-/g,'').slice(0,6));
+    const pe=parseInt(p.e.replace(/-/g,'').slice(0,6));
+    return ym>=ps&&ym<=pe;
+  });
+}
+function clDelP(cid,pid){
+  const periods=clGPs(cid);
+  const delP=periods.find(p=>p.id===pid);
+  const remaining=periods.filter(p=>p.id!==pid);
+  // 削除する期間のうち、残りの期間にも含まれない月のチェックを削除
+  const delMonths=clPeriodMonths(delP).filter(({y,m})=>!clYMInPeriods(y,m,remaining));
+  if(delMonths.length){
+    const d=clD(cid);
+    if(d.jChecks)Object.keys(d.jChecks).forEach(jid=>clDelChecksForMonths(d.jChecks[jid],delMonths));
+    if(d.fChecks)clDelChecksForMonths(d.fChecks,delMonths);
+  }
+  clSPs(cid,remaining);
+}
+function clUpdP(cid,pid,s,e){
+  const a=clGPs(cid);
+  const p=a.find(x=>x.id===pid);
+  if(p){
+    const oldMonths=clPeriodMonths(p);
+    p.s=s;p.e=e;
+    // 変更後に期間外になった月のチェックを削除
+    const removedMonths=oldMonths.filter(({y,m})=>!clYMInPeriods(y,m,a));
+    if(removedMonths.length){
+      const d=clD(cid);
+      if(d.jChecks)Object.keys(d.jChecks).forEach(jid=>clDelChecksForMonths(d.jChecks[jid],removedMonths));
+      if(d.fChecks)clDelChecksForMonths(d.fChecks,removedMonths);
+    }
+  }
+  clSPs(cid,a);
+}
 
 // 実態把握票 交付日
 function clGJittai(cid){return clDR(cid).jittaiDates||[];}
